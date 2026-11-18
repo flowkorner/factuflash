@@ -1,0 +1,9 @@
+import type { ReactElement } from 'react';
+import { render } from '@testing-library/react';
+import type { RenderResult } from '@testing-library/react';
+import { ThemeProvider } from '@mui/material/styles';
+import { theme } from '@/theme/theme';
+
+export function renderWithTheme(ui: ReactElement): RenderResult {
+  return render(<ThemeProvider theme={theme}>{ui}</ThemeProvider>);
+}
