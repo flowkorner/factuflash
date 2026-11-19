@@ -1,5 +1,4 @@
 import type { Ref } from 'react';
-import Link from 'next/link';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
@@ -10,6 +9,7 @@ import { colors } from '@/theme/tokens';
 interface LinkSentCardProps {
   email: string;
   resent: boolean;
+  resendIn: number;
   headingRef: Ref<HTMLHeadingElement>;
   onResend: () => Promise<void>;
   onChangeEmail: () => void;
@@ -18,10 +18,14 @@ interface LinkSentCardProps {
 export function LinkSentCard({
   email,
   resent,
+  resendIn,
   headingRef,
   onResend,
   onChangeEmail,
 }: LinkSentCardProps) {
+  const canResend = resendIn === 0;
+  const resendLabel = canResend ? 'Renvoyer le lien' : `Renvoyer (${resendIn} s)`;
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Paper
@@ -54,15 +58,20 @@ export function LinkSentCard({
           </Box>
           . Il est valable 15 minutes.
         </Typography>
+        <Typography color="text.secondary">
+          Ouvrez l’email et touchez le lien pour vous connecter. Pensez à regarder dans les
+          indésirables.
+        </Typography>
+        {resent ? (
+          <Typography sx={{ fontWeight: 600, color: 'text.primary' }}>
+            Un nouveau lien vient de partir.
+          </Typography>
+        ) : null}
       </Paper>
 
-      <Button component={Link} href="/devis" variant="contained" size="large" fullWidth>
-        Simuler le clic sur le lien
-      </Button>
-
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1.25 }}>
-        <Button variant="outlined" onClick={onResend} disabled={resent}>
-          {resent ? 'Lien renvoyé' : 'Renvoyer le lien'}
+        <Button variant="outlined" onClick={onResend} disabled={!canResend}>
+          {resendLabel}
         </Button>
         <Button variant="outlined" onClick={onChangeEmail}>
           Changer d’email

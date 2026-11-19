@@ -2,10 +2,15 @@
 
 import { useCallback, useReducer } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { sendMagicLink } from '../services/magicLink';
+import { requestMagicLink } from '../actions/requestMagicLink';
+import type { MagicLinkFailure } from '../types';
 import { isValidEmail } from '../utils/email';
+import { useCountdown } from './useCountdown';
 
 export type LoginStatus = 'idle' | 'sending' | 'sent';
+
+/** Supabase impose 60 s entre deux envois pour une même adresse. */
+export const RESEND_DELAY_SECONDS = 60;
 
 interface LoginState {
   email: string;
@@ -27,8 +32,15 @@ const initialState: LoginState = { email: '', status: 'idle', error: null, resen
 export const LOGIN_ERRORS = {
   empty: 'Saisissez votre email.',
   invalid: 'Cet email ne semble pas valide. Exemple : vous@exemple.fr',
+  rateLimited: 'Trop de demandes. Réessayez dans quelques minutes.',
   network: 'L’envoi a échoué. Réessayez dans un instant.',
 } as const;
+
+const FAILURE_MESSAGES: Record<MagicLinkFailure, string> = {
+  invalid_email: LOGIN_ERRORS.invalid,
+  rate_limited: LOGIN_ERRORS.rateLimited,
+  unknown: LOGIN_ERRORS.network,
+};
 
 function loginReducer(state: LoginState, action: LoginAction): LoginState {
   switch (action.type) {
@@ -55,11 +67,23 @@ function validate(email: string): string | null {
   return null;
 }
 
+/** Appelle la Server Action ; toute exception réseau devient un message lisible. */
+async function send(email: string): Promise<string | null> {
+  try {
+    const result = await requestMagicLink(email.trim());
+    return result.ok ? null : FAILURE_MESSAGES[result.reason];
+  } catch {
+    return LOGIN_ERRORS.network;
+  }
+}
+
 export interface UseMagicLinkLogin {
   email: string;
   status: LoginStatus;
   error: string | null;
   resent: boolean;
+  /** Secondes avant de pouvoir renvoyer un lien. */
+  resendIn: number;
   onEmailChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   onResend: () => Promise<void>;
@@ -68,6 +92,7 @@ export interface UseMagicLinkLogin {
 
 export function useMagicLinkLogin(): UseMagicLinkLogin {
   const [state, dispatch] = useReducer(loginReducer, initialState);
+  const { remaining, start } = useCountdown();
   const { email } = state;
 
   const onEmailChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
@@ -83,28 +108,30 @@ export function useMagicLinkLogin(): UseMagicLinkLogin {
         return;
       }
       dispatch({ type: 'sendStarted' });
-      try {
-        await sendMagicLink(email.trim());
-        dispatch({ type: 'sendSucceeded' });
-      } catch {
-        dispatch({ type: 'sendFailed', error: LOGIN_ERRORS.network });
+      const error = await send(email);
+      if (error) {
+        dispatch({ type: 'sendFailed', error });
+        return;
       }
+      start(RESEND_DELAY_SECONDS);
+      dispatch({ type: 'sendSucceeded' });
     },
-    [email],
+    [email, start],
   );
 
   const onResend = useCallback(async () => {
-    try {
-      await sendMagicLink(email.trim());
-      dispatch({ type: 'resent' });
-    } catch {
-      dispatch({ type: 'sendFailed', error: LOGIN_ERRORS.network });
+    const error = await send(email);
+    if (error) {
+      dispatch({ type: 'sendFailed', error });
+      return;
     }
-  }, [email]);
+    start(RESEND_DELAY_SECONDS);
+    dispatch({ type: 'resent' });
+  }, [email, start]);
 
   const onChangeEmail = useCallback(() => {
     dispatch({ type: 'reset' });
   }, []);
 
-  return { ...state, onEmailChange, onSubmit, onResend, onChangeEmail };
+  return { ...state, resendIn: remaining, onEmailChange, onSubmit, onResend, onChangeEmail };
 }

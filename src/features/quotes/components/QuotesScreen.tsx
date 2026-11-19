@@ -2,6 +2,7 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import AddIcon from '@mui/icons-material/Add';
 import { MobileScreen } from '@/components/MobileScreen';
+import { SignOutButton } from '@/features/auth/components/SignOutButton';
 import { QuotesEmptyState } from './QuotesEmptyState';
 import { QuotesHeader } from './QuotesHeader';
 
@@ -19,8 +20,11 @@ export function QuotesScreen() {
         </Button>
       }
     >
-      <Box sx={{ pt: 2, pb: 3 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2, pb: 3 }}>
         <QuotesEmptyState />
+        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+          <SignOutButton />
+        </Box>
       </Box>
     </MobileScreen>
   );
