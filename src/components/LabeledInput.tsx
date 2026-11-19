@@ -4,7 +4,7 @@ import FormHelperText from '@mui/material/FormHelperText';
 import FormLabel from '@mui/material/FormLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 
-type InputMode = 'text' | 'email' | 'tel' | 'numeric';
+type InputMode = 'text' | 'email' | 'tel' | 'numeric' | 'decimal';
 
 interface LabeledInputProps {
   id: string;

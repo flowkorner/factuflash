@@ -11,13 +11,13 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 
 ## Organisation
 
-- `src/app/` : routes uniquement (metadata + rendu d'un écran). `/connexion`, `/devis`.
+- `src/app/` : routes uniquement (metadata + rendu d'un écran). `/connexion`, `/devis`, `/devis/nouveau`, `/devis/[id]`, `/entreprise`.
 - `src/features/<domaine>/` : `components/`, `hooks/` (logique), `services/` (appels externes), `utils/`.
 - `src/components/` : composants partagés (`MobileScreen`, `BrandLogo`).
 - `src/theme/` : `tokens.ts` (couleurs de la maquette) + `theme.ts` (MUI). Pas de couleur en dur ailleurs.
 - `src/lib/env.ts` : variables d'environnement typées (liste dans `.env.example`, valeurs dans `.env.local`).
 - `src/lib/supabase/` : client serveur (`server.ts`) et rafraîchissement de session (`middleware.ts`).
-- `src/middleware.ts` : pages protégées (`/devis`, `/entreprise`) → `/connexion` si non connecté.
+- `src/middleware.ts` : pages protégées (`/devis…`, `/entreprise`) → `/connexion` si non connecté.
 - `src/features/<domaine>/domain/` : règles métier pures et testées (ex. contrôle du SIRET).
 - `supabase/migrations/` : SQL versionné (tables, RLS, stockage). Une migration = un fichier horodaté, jamais modifié après application.
 - `src/lib/supabase/database.types.ts` : types de la base, à tenir à jour avec chaque migration.
@@ -40,6 +40,15 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 - **Grants explicites dans chaque migration** (le projet n'accorde pas l'accès API automatiquement) :
   `grant select, insert, update … to authenticated;` au plus juste, et `grant execute` pour chaque fonction appelée par l'app. Rien pour `anon`.
 - Fichiers : bucket `logos`, un dossier par utilisateur (`<user_id>/…`), écriture réservée à son propriétaire.
+- Écriture multi-tables = une fonction SQL `security invoker` (ex. `save_quote_draft`) : une transaction, RLS appliquée.
+- Clés étrangères composites `(id, user_id)` : impossible de rattacher la donnée d'un autre artisan.
+
+## Devis : argent et calculs
+
+- Montants en **centimes** (entiers), quantités en **millièmes**, TVA en **points de base** (2000 = 20 %). Jamais de flottant.
+- Totaux jamais stockés : calculés par `quote_summaries` (SQL) et `computeTotals` (TS), avec les **mêmes arrondis**
+  (HT arrondi par ligne, TVA arrondie par taux). Toute modification se fait des deux côtés, avec un test.
+- Préparé pour l'IA : `quotes.description` (entrée), `price_items` (tarifs), `source` `'manual' | 'ai'` sur devis et lignes.
 
 ## Façon de travailler
 
@@ -52,4 +61,4 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 
 - Ticket 2 : connexion par vrai lien magique Supabase, bouton « Se déconnecter » sur Mes devis.
 - Ticket 3 : écran Mon entreprise (`/entreprise`), table `companies` + bucket `logos`. Première connexion → `/entreprise`.
-- « Nouveau devis » : visible, désactivé, marqué « bientôt ».
+- Ticket 4 : devis saisis à la main (brouillons) : clients, lignes, totaux, numérotation `D-AAAA-NNN`, mentions légales.

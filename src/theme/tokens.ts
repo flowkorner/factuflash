@@ -11,4 +11,14 @@ export const colors = {
   border: '#E2E8F0',
   inputBorder: '#CBD5E1',
   error: '#B91C1C',
+  /** Pastilles de statut des devis (maquette « Mes devis »). */
+  statusDraftBg: '#F1F5F9',
+  statusDraftFg: '#334155',
+  statusSentBg: '#DBEAFE',
+  statusSentFg: '#1E40AF',
+  statusAcceptedBg: '#FEF3C7',
+  statusAcceptedFg: '#92400E',
+  statusDeclinedBg: '#FEE2E2',
+  statusDeclinedFg: '#991B1B',
+  dashedBorder: '#93C5FD',
 } as const;
