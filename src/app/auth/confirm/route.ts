@@ -13,7 +13,6 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const tokenHash = searchParams.get('token_hash');
   const type = searchParams.get('type');
-  const next = getSafeRedirectPath(searchParams.get('next'), '/devis');
 
   if (!tokenHash || type !== 'email') {
     redirect(INVALID_LINK_PATH);
@@ -21,6 +20,14 @@ export async function GET(request: NextRequest) {
 
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.verifyOtp({ type: 'email', token_hash: tokenHash });
+  if (error) {
+    redirect(INVALID_LINK_PATH);
+  }
 
-  redirect(error ? INVALID_LINK_PATH : next);
+  // Première connexion : on commence par « Mon entreprise » (parcours de la maquette).
+  const { count } = await supabase
+    .from('companies')
+    .select('user_id', { count: 'exact', head: true });
+  const fallback = count && count > 0 ? '/devis' : '/entreprise';
+  redirect(getSafeRedirectPath(searchParams.get('next'), fallback));
 }

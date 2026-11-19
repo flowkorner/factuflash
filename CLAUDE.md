@@ -17,7 +17,10 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 - `src/theme/` : `tokens.ts` (couleurs de la maquette) + `theme.ts` (MUI). Pas de couleur en dur ailleurs.
 - `src/lib/env.ts` : variables d'environnement typées (liste dans `.env.example`, valeurs dans `.env.local`).
 - `src/lib/supabase/` : client serveur (`server.ts`) et rafraîchissement de session (`middleware.ts`).
-- `src/middleware.ts` : pages protégées → `/connexion` si non connecté.
+- `src/middleware.ts` : pages protégées (`/devis`, `/entreprise`) → `/connexion` si non connecté.
+- `src/features/<domaine>/domain/` : règles métier pures et testées (ex. contrôle du SIRET).
+- `supabase/migrations/` : SQL versionné (tables, RLS, stockage). Une migration = un fichier horodaté, jamais modifié après application.
+- `src/lib/supabase/database.types.ts` : types de la base, à tenir à jour avec chaque migration.
 - `supabase/templates/` : modèles d'email à copier dans le tableau de bord Supabase.
 
 ## Conventions
@@ -33,6 +36,8 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 - Appels Supabase uniquement côté serveur (Server Actions, Route Handlers, Server Components).
 - Uniquement la clé publique (publishable / anon). Jamais la clé `service_role` dans l'app.
 - Lien magique : `signInWithOtp` → email → `/auth/confirm?token_hash=…` → `verifyOtp` (marche d'un navigateur à l'autre).
+- Toute table a la RLS activée, avec des policies limitées à `auth.uid()`. Les données sont revalidées côté serveur.
+- Fichiers : bucket `logos`, un dossier par utilisateur (`<user_id>/…`), écriture réservée à son propriétaire.
 
 ## Façon de travailler
 
@@ -44,4 +49,5 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 ## État actuel
 
 - Ticket 2 : connexion par vrai lien magique Supabase, bouton « Se déconnecter » sur Mes devis.
-- « Nouveau devis » et « Mon entreprise » : visibles, désactivés, marqués « bientôt ».
+- Ticket 3 : écran Mon entreprise (`/entreprise`), table `companies` + bucket `logos`. Première connexion → `/entreprise`.
+- « Nouveau devis » : visible, désactivé, marqué « bientôt ».

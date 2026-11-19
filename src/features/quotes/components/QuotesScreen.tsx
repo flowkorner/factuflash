@@ -3,10 +3,15 @@ import Button from '@mui/material/Button';
 import AddIcon from '@mui/icons-material/Add';
 import { MobileScreen } from '@/components/MobileScreen';
 import { SignOutButton } from '@/features/auth/components/SignOutButton';
+import { CompleteCompanyNotice } from './CompleteCompanyNotice';
 import { QuotesEmptyState } from './QuotesEmptyState';
 import { QuotesHeader } from './QuotesHeader';
 
-export function QuotesScreen() {
+interface QuotesScreenProps {
+  hasCompany: boolean;
+}
+
+export function QuotesScreen({ hasCompany }: QuotesScreenProps) {
   return (
     <MobileScreen
       header={<QuotesHeader subtitle="Votre premier devis en 2 minutes" />}
@@ -21,6 +26,7 @@ export function QuotesScreen() {
       }
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2, pb: 3 }}>
+        {hasCompany ? null : <CompleteCompanyNotice />}
         <QuotesEmptyState />
         <Box sx={{ display: 'flex', justifyContent: 'center' }}>
           <SignOutButton />
