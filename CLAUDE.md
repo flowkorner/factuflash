@@ -1,7 +1,7 @@
 # FactuFlash
 
 Devis et factures pour artisans, utilisés sur téléphone.
-Stack : Next.js 15 (App Router, TypeScript strict) · MUI 7 · Jest + RTL. Prévu : Supabase (auth, BDD), Stripe (acomptes).
+Stack : Next.js 15 (App Router, TypeScript strict) · MUI 7 · Supabase (Auth, Postgres + RLS, Storage) · Jest + RTL. Prévu : Stripe (acomptes).
 Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844).
 
 ## Commandes
@@ -15,6 +15,13 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 - `src/features/<domaine>/` : `components/`, `hooks/` (logique), `services/` (appels externes), `utils/`.
 - `src/components/` : composants partagés (`MobileScreen`, `BrandLogo`).
 - `src/theme/` : `tokens.ts` (couleurs de la maquette) + `theme.ts` (MUI). Pas de couleur en dur ailleurs.
+- `src/lib/env.ts` : variables d'environnement typées (liste dans `.env.example`, valeurs dans `.env.local`).
+- `src/lib/supabase/` : client serveur (`server.ts`) et rafraîchissement de session (`middleware.ts`).
+- `src/middleware.ts` : pages protégées (`/devis`, `/entreprise`) → `/connexion` si non connecté.
+- `src/features/<domaine>/domain/` : règles métier pures et testées (ex. contrôle du SIRET).
+- `supabase/migrations/` : SQL versionné (tables, RLS, stockage). Une migration = un fichier horodaté, jamais modifié après application.
+- `src/lib/supabase/database.types.ts` : types de la base, à tenir à jour avec chaque migration.
+- `supabase/templates/` : modèles d'email à copier dans le tableau de bord Supabase.
 
 ## Conventions
 
@@ -24,13 +31,23 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 - Textes de l'interface en français. Tests : comportement utilisateur (RTL), services mockés.
 - Redux classique seulement si un état global devient nécessaire.
 
+## Supabase
+
+- Appels Supabase uniquement côté serveur (Server Actions, Route Handlers, Server Components).
+- Uniquement la clé publique (publishable / anon). Jamais la clé `service_role` dans l'app.
+- Lien magique : `signInWithOtp` → email → `/auth/confirm?token_hash=…` → `verifyOtp` (marche d'un navigateur à l'autre).
+- Toute table a la RLS activée, avec des policies limitées à `auth.uid()`. Les données sont revalidées côté serveur.
+- Fichiers : bucket `logos`, un dossier par utilisateur (`<user_id>/…`), écriture réservée à son propriétaire.
+
 ## Façon de travailler
 
-- Un ticket à la fois. Proposer le plan avant de coder.
-- Jamais de commit ni de push sans accord explicite.
+- Plusieurs tickets peuvent s'enchaîner : appliquer ses recommandations sans demander, et noter chaque choix dans le résumé final.
+- S'arrêter uniquement pour : une clé ou un compte à créer (l'utilisateur le fait), une suppression de fichier, le commit/push.
+- Un commit par ticket. Jamais de commit ni de push sans accord explicite.
 - Ne jamais supprimer un fichier ou un dossier sans demander.
 
-## État actuel (ticket 1)
+## État actuel
 
-- Lien magique simulé : `src/features/auth/services/magicLink.ts` (à remplacer par `supabase.auth.signInWithOtp`).
-- « Nouveau devis » et « Mon entreprise » : visibles, désactivés, marqués « bientôt ».
+- Ticket 2 : connexion par vrai lien magique Supabase, bouton « Se déconnecter » sur Mes devis.
+- Ticket 3 : écran Mon entreprise (`/entreprise`), table `companies` + bucket `logos`. Première connexion → `/entreprise`.
+- « Nouveau devis » : visible, désactivé, marqué « bientôt ».

@@ -40,7 +40,7 @@ export const theme = createTheme({
           fontSize: 14,
           fontWeight: 500,
           color: colors.label,
-          '&.Mui-focused': { color: colors.label },
+          '&.Mui-focused:not(.Mui-error)': { color: colors.label },
         },
       },
     },

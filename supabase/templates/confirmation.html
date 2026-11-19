@@ -1,0 +1,18 @@
+<!-- Supabase → Authentication → Emails → Templates → « Confirm signup »
+     Objet : Bienvenue sur FactuFlash : confirmez votre email -->
+<div style="font-family: Arial, Helvetica, sans-serif; color: #0F172A; max-width: 480px; margin: 0 auto; padding: 24px;">
+  <h1 style="font-size: 22px; margin: 0 0 16px;">Bienvenue sur FactuFlash</h1>
+  <p style="font-size: 16px; line-height: 1.5; margin: 0 0 24px;">
+    Bonjour,<br />
+    Touchez le bouton ci-dessous pour confirmer votre email et ouvrir votre compte. Le lien est valable 15 minutes et ne sert qu’une fois.
+  </p>
+  <p style="margin: 0 0 24px;">
+    <a href="{{ .RedirectTo }}/auth/confirm?token_hash={{ .TokenHash }}&type=email"
+       style="display: inline-block; background: #1D4ED8; color: #FFFFFF; font-size: 17px; font-weight: bold; text-decoration: none; padding: 16px 28px; border-radius: 12px;">
+      Confirmer et me connecter
+    </a>
+  </p>
+  <p style="font-size: 14px; line-height: 1.5; color: #475569; margin: 0;">
+    Vous n’avez pas créé de compte FactuFlash ? Ignorez simplement cet email.
+  </p>
+</div>

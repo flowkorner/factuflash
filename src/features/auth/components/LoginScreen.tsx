@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { BrandLogo } from '@/components/BrandLogo';
@@ -9,7 +10,14 @@ import { useMagicLinkLogin } from '../hooks/useMagicLinkLogin';
 import { LinkSentCard } from './LinkSentCard';
 import { LoginForm } from './LoginForm';
 
-export function LoginScreen() {
+export const INVALID_LINK_MESSAGE = 'Ce lien a expiré ou a déjà servi. Demandez-en un nouveau.';
+
+interface LoginScreenProps {
+  /** Vrai quand on revient d'un lien magique expiré ou invalide. */
+  invalidLink?: boolean;
+}
+
+export function LoginScreen({ invalidLink = false }: LoginScreenProps) {
   const login = useMagicLinkLogin();
   const isSent = login.status === 'sent';
 
@@ -37,10 +45,17 @@ export function LoginScreen() {
           </Typography>
         </Box>
 
+        {invalidLink && !isSent ? (
+          <Alert severity="warning" sx={{ borderRadius: '12px', fontSize: 15 }}>
+            {INVALID_LINK_MESSAGE}
+          </Alert>
+        ) : null}
+
         {isSent ? (
           <LinkSentCard
             email={login.email.trim()}
             resent={login.resent}
+            resendIn={login.resendIn}
             headingRef={sentHeadingRef}
             onResend={login.onResend}
             onChangeEmail={login.onChangeEmail}

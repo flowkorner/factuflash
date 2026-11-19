@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getCurrentCompany } from '@/features/company/data/getCurrentCompany';
 import { QuotesScreen } from '@/features/quotes/components/QuotesScreen';
 
 export const metadata: Metadata = {
@@ -6,6 +7,7 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-export default function DevisPage() {
-  return <QuotesScreen />;
+export default async function DevisPage() {
+  const company = await getCurrentCompany();
+  return <QuotesScreen hasCompany={company !== null} />;
 }

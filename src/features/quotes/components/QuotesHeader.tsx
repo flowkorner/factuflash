@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
@@ -29,19 +30,14 @@ export function QuotesHeader({ subtitle }: QuotesHeaderProps) {
         <Typography color="text.secondary">{subtitle}</Typography>
       </Box>
 
-      {/* Écran « Mon entreprise » : ticket suivant. */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.25 }}>
-        <IconButton
-          disabled
-          aria-label="Mon entreprise (bientôt disponible)"
-          sx={{ width: 48, height: 48, border: 1, borderColor: 'divider' }}
-        >
-          <PersonOutlineIcon />
-        </IconButton>
-        <Typography aria-hidden="true" sx={{ fontSize: 12, color: 'text.secondary' }}>
-          Bientôt
-        </Typography>
-      </Box>
+      <IconButton
+        component={Link}
+        href="/entreprise"
+        aria-label="Mon entreprise"
+        sx={{ width: 48, height: 48, border: 1, borderColor: 'divider', color: 'text.primary' }}
+      >
+        <PersonOutlineIcon />
+      </IconButton>
     </Box>
   );
 }

@@ -6,6 +6,11 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-export default function ConnexionPage() {
-  return <LoginScreen />;
+interface ConnexionPageProps {
+  searchParams: Promise<{ erreur?: string | string[] }>;
+}
+
+export default async function ConnexionPage({ searchParams }: ConnexionPageProps) {
+  const { erreur } = await searchParams;
+  return <LoginScreen invalidLink={erreur === 'lien-invalide'} />;
 }
