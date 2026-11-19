@@ -37,6 +37,8 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 - Uniquement la clé publique (publishable / anon). Jamais la clé `service_role` dans l'app.
 - Lien magique : `signInWithOtp` → email → `/auth/confirm?token_hash=…` → `verifyOtp` (marche d'un navigateur à l'autre).
 - Toute table a la RLS activée, avec des policies limitées à `auth.uid()`. Les données sont revalidées côté serveur.
+- **Grants explicites dans chaque migration** (le projet n'accorde pas l'accès API automatiquement) :
+  `grant select, insert, update … to authenticated;` au plus juste, et `grant execute` pour chaque fonction appelée par l'app. Rien pour `anon`.
 - Fichiers : bucket `logos`, un dossier par utilisateur (`<user_id>/…`), écriture réservée à son propriétaire.
 
 ## Façon de travailler
