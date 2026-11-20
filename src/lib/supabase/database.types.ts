@@ -104,6 +104,13 @@ export interface Database {
           source: SourceDb;
           created_at: string;
           updated_at: string;
+          public_token_hash: string | null;
+          snapshot: Json | null;
+          sent_at: string | null;
+          last_sent_at: string | null;
+          sent_to_email: string | null;
+          accepted_at: string | null;
+          accepted_by_name: string | null;
         };
         Insert: never;
         Update: never;
@@ -142,6 +149,8 @@ export interface Database {
           total_ht_cents: number;
           total_vat_cents: number;
           total_ttc_cents: number;
+          sent_at: string | null;
+          accepted_at: string | null;
         };
         Relationships: [];
       };
@@ -159,6 +168,27 @@ export interface Database {
           p_lines: Json;
         };
         Returns: string;
+      };
+      build_quote_snapshot: {
+        Args: { p_quote_id: string };
+        Returns: Json;
+      };
+      send_quote: {
+        Args: {
+          p_quote_id: string;
+          p_token_hash: string;
+          p_recipient_email: string;
+          p_mentions: Json;
+        };
+        Returns: Json;
+      };
+      get_public_quote: {
+        Args: { p_token: string };
+        Returns: Json;
+      };
+      accept_public_quote: {
+        Args: { p_token: string; p_name: string };
+        Returns: Json;
       };
     };
     Enums: { [_ in never]: never };

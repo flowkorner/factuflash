@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useReducer, useTransition } from 'react';
+import { useCallback, useMemo, useReducer, useState, useTransition } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import type { VatMode } from '@/features/company/domain/types';
@@ -183,6 +183,8 @@ export interface UseQuoteEditorOptions {
   initialValues: QuoteFormValues;
   clients: readonly ClientOption[];
   vatMode: VatMode;
+  /** Appelé une fois le brouillon enregistré, quand l'artisan demande l'envoi. */
+  onReadyToSend?: (quoteId: string, clientEmail: string) => void;
 }
 
 export interface UseQuoteEditor {
@@ -200,6 +202,8 @@ export interface UseQuoteEditor {
   onLineVatChange: (key: string, rate: string) => void;
   onRemoveLine: (key: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  /** Enregistre puis passe la main à la fenêtre d'envoi. */
+  onSend: () => void;
 }
 
 export function useQuoteEditor({
@@ -207,6 +211,7 @@ export function useQuoteEditor({
   initialValues,
   clients,
   vatMode,
+  onReadyToSend,
 }: UseQuoteEditorOptions): UseQuoteEditor {
   const [state, dispatch] = useReducer(editorReducer, {
     values: initialValues,
@@ -215,6 +220,8 @@ export function useQuoteEditor({
     nextKey: 1,
   });
   const [isSaving, startTransition] = useTransition();
+  // Un nouveau devis garde son id après le premier enregistrement (pas de doublon au 2e clic).
+  const [savedQuoteId, setSavedQuoteId] = useState<string | null>(quoteId);
   const router = useRouter();
   const { values } = state;
   const defaultRate: VatRateBp = vatMode === 'franchise' ? 0 : DEFAULT_VAT_RATE;
@@ -270,35 +277,59 @@ export function useQuoteEditor({
     dispatch({ type: 'lineRemoved', key });
   }, []);
 
+  /** Valide puis enregistre ; renvoie l'id du devis, ou null (erreurs affichées, curseur placé). */
+  const persist = useCallback(async (): Promise<string | null> => {
+    try {
+      const result = await saveQuoteDraft({ quoteId: savedQuoteId, values });
+      if (result.ok) {
+        setSavedQuoteId(result.id);
+        return result.id;
+      }
+      dispatch({ type: 'failed', errors: result.errors, formError: result.message ?? null });
+      focusFirstError(result.errors, values.lines);
+    } catch {
+      dispatch({
+        type: 'failed',
+        errors: {},
+        formError: 'L’enregistrement a échoué. Vérifiez votre connexion et réessayez.',
+      });
+    }
+    return null;
+  }, [savedQuoteId, values]);
+
+  /** Validation locale immédiate (sans attendre le serveur). */
+  const validateLocally = useCallback((): boolean => {
+    const validation = validateQuote(values, vatMode);
+    if (validation.data) return true;
+    dispatch({ type: 'failed', errors: validation.errors, formError: null });
+    focusFirstError(validation.errors, values.lines);
+    return false;
+  }, [values, vatMode]);
+
   const onSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      const validation = validateQuote(values, vatMode);
-      if (!validation.data) {
-        dispatch({ type: 'failed', errors: validation.errors, formError: null });
-        focusFirstError(validation.errors, values.lines);
-        return;
-      }
+      if (!validateLocally()) return;
       startTransition(async () => {
-        try {
-          const result = await saveQuoteDraft({ quoteId, values });
-          if (result.ok) {
-            router.push('/devis');
-            return;
-          }
-          dispatch({ type: 'failed', errors: result.errors, formError: result.message ?? null });
-          focusFirstError(result.errors, values.lines);
-        } catch {
-          dispatch({
-            type: 'failed',
-            errors: {},
-            formError: 'L’enregistrement a échoué. Vérifiez votre connexion et réessayez.',
-          });
-        }
+        const id = await persist();
+        if (id) router.push('/devis');
       });
     },
-    [values, vatMode, quoteId, router],
+    [validateLocally, persist, router],
   );
+
+  const clientEmail = useMemo(() => {
+    if (values.clientId === NEW_CLIENT) return values.newClientEmail.trim();
+    return clients.find((client) => client.id === values.clientId)?.email ?? '';
+  }, [values.clientId, values.newClientEmail, clients]);
+
+  const onSend = useCallback(() => {
+    if (!validateLocally()) return;
+    startTransition(async () => {
+      const id = await persist();
+      if (id) onReadyToSend?.(id, clientEmail);
+    });
+  }, [validateLocally, persist, onReadyToSend, clientEmail]);
 
   return {
     values,
@@ -315,5 +346,6 @@ export function useQuoteEditor({
     onLineVatChange,
     onRemoveLine,
     onSubmit,
+    onSend,
   };
 }
