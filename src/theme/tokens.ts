@@ -21,4 +21,10 @@ export const colors = {
   statusDeclinedBg: '#FEE2E2',
   statusDeclinedFg: '#991B1B',
   dashedBorder: '#93C5FD',
+  successBg: '#DCFCE7',
+  successFg: '#14532D',
+  acceptBorder: '#BFDBFE',
+  warningBg: '#FFFBEB',
+  warningBorder: '#FDE68A',
+  warningFg: '#78350F',
 } as const;

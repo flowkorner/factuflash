@@ -11,7 +11,8 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 
 ## Organisation
 
-- `src/app/` : routes uniquement (metadata + rendu d'un écran). `/connexion`, `/devis`, `/devis/nouveau`, `/devis/[id]`, `/entreprise`.
+- `src/app/` : routes uniquement (metadata + rendu d'un écran). `/connexion`, `/devis`, `/devis/nouveau`, `/devis/[id]` (+ `/pdf`), `/entreprise`,
+  et la page publique client `/d/[token]` (+ `/pdf`), sans compte.
 - `src/features/<domaine>/` : `components/`, `hooks/` (logique), `services/` (appels externes), `utils/`.
 - `src/components/` : composants partagés (`MobileScreen`, `BrandLogo`).
 - `src/theme/` : `tokens.ts` (couleurs de la maquette) + `theme.ts` (MUI). Pas de couleur en dur ailleurs.
@@ -22,6 +23,8 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 - `supabase/migrations/` : SQL versionné (tables, RLS, stockage). Une migration = un fichier horodaté, jamais modifié après application.
 - `src/lib/supabase/database.types.ts` : types de la base, à tenir à jour avec chaque migration.
 - `supabase/templates/` : modèles d'email à copier dans le tableau de bord Supabase.
+- `src/lib/email/resend.ts` : envoi d'emails (API HTTP Resend, serveur uniquement).
+- `src/features/quotes/document/` : snapshot figé → modèle d'affichage partagé par la page web et le PDF (`pdf/`).
 
 ## Conventions
 
@@ -38,7 +41,11 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 - Lien magique : `signInWithOtp` → email → `/auth/confirm?token_hash=…` → `verifyOtp` (marche d'un navigateur à l'autre).
 - Toute table a la RLS activée, avec des policies limitées à `auth.uid()`. Les données sont revalidées côté serveur.
 - **Grants explicites dans chaque migration** (le projet n'accorde pas l'accès API automatiquement) :
-  `grant select, insert, update … to authenticated;` au plus juste, et `grant execute` pour chaque fonction appelée par l'app. Rien pour `anon`.
+  `grant select, insert, update … to authenticated;` au plus juste, et `grant execute` pour chaque fonction appelée par l'app.
+  Rien pour `anon`, sauf `get_public_quote` / `accept_public_quote` (security definer, exigent le jeton secret).
+- Statuts des devis : `draft` → `sent` (fonction `send_quote`) → `accepted` (fonction `accept_public_quote`, par le client).
+  Droits par colonne sur `quotes` : l'artisan ne peut écrire ni statut, ni snapshot, ni jeton, ni acceptation.
+- Lien client : jeton de 256 bits, seule son empreinte SHA-256 est en base. Un renvoi crée un nouveau lien (l'ancien meurt).
 - Fichiers : bucket `logos`, un dossier par utilisateur (`<user_id>/…`), écriture réservée à son propriétaire.
 - Écriture multi-tables = une fonction SQL `security invoker` (ex. `save_quote_draft`) : une transaction, RLS appliquée.
 - Clés étrangères composites `(id, user_id)` : impossible de rattacher la donnée d'un autre artisan.
@@ -49,6 +56,11 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 - Totaux jamais stockés : calculés par `quote_summaries` (SQL) et `computeTotals` (TS), avec les **mêmes arrondis**
   (HT arrondi par ligne, TVA arrondie par taux). Toute modification se fait des deux côtés, avec un test.
 - Préparé pour l'IA : `quotes.description` (entrée), `price_items` (tarifs), `source` `'manual' | 'ai'` sur devis et lignes.
+
+## Emails
+
+- Variables serveur (jamais `NEXT_PUBLIC_`) : `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_TEST_RECIPIENT` (mode test :
+  tout part vers cette adresse). Texte saisi toujours échappé dans le HTML.
 
 ## Façon de travailler
 
@@ -64,3 +76,5 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 - Ticket 4 : devis saisis à la main (brouillons) : clients, lignes, totaux, numérotation `D-AAAA-NNN`, mentions légales.
 - Suppression d'un brouillon (carte de Mes devis et écran du devis), confirmée par `ConfirmDialog` (jamais `window.confirm`).
   Un numéro supprimé n'est jamais réattribué.
+- Ticket 5 : envoi au client par email, page publique `/d/[token]`, acceptation (nom + case « bon pour accord »),
+  devis figé à l'envoi (`snapshot`), PDF artisan et client.

@@ -7,6 +7,7 @@ import Button from '@mui/material/Button';
 import FormHelperText from '@mui/material/FormHelperText';
 import Typography from '@mui/material/Typography';
 import AddIcon from '@mui/icons-material/Add';
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import { BackHeader } from '@/components/BackHeader';
 import { LabeledInput } from '@/components/LabeledInput';
 import { LabeledSelect } from '@/components/LabeledSelect';
@@ -15,13 +16,16 @@ import { MobileScreen } from '@/components/MobileScreen';
 import type { VatMode } from '@/features/company/domain/types';
 import { colors } from '@/theme/tokens';
 import { buildLegalMentions } from '../domain/legalMentions';
+import { formatCents } from '../domain/money';
 import type { ClientOption, QuoteFormValues } from '../domain/types';
 import { NEW_CLIENT } from '../domain/types';
 import { useQuoteEditor } from '../hooks/useQuoteEditor';
+import { useSendQuote } from '../hooks/useSendQuote';
 import { DeleteQuoteDraftButton } from './DeleteQuoteDraftButton';
 import { LegalMentionsList } from './LegalMentionsList';
 import { QuoteLineCard } from './QuoteLineCard';
 import { QuoteTotalsBar } from './QuoteTotalsBar';
+import { SendQuoteDialog } from './SendQuoteDialog';
 
 const FORM_ID = 'quote-form';
 
@@ -40,9 +44,20 @@ export function QuoteEditorScreen({
   clients,
   company,
 }: QuoteEditorScreenProps) {
-  const editor = useQuoteEditor({ quoteId, initialValues, clients, vatMode: company.vatMode });
+  const send = useSendQuote();
+  const editor = useQuoteEditor({
+    quoteId,
+    initialValues,
+    clients,
+    vatMode: company.vatMode,
+    onReadyToSend: send.open,
+  });
   const { values, errors } = editor;
   const isFranchise = company.vatMode === 'franchise';
+  const clientName =
+    values.clientId === NEW_CLIENT
+      ? values.newClientName.trim()
+      : (clients.find((client) => client.id === values.clientId)?.name ?? 'votre client');
 
   const clientOptions = useMemo(
     () => [
@@ -77,17 +92,27 @@ export function QuoteEditorScreen({
       footer={
         <>
           <QuoteTotalsBar totals={editor.totals} isFranchise={isFranchise} />
-          <Button
-            type="submit"
-            form={FORM_ID}
-            variant="contained"
-            size="large"
-            fullWidth
-            disabled={editor.isSaving}
-            aria-busy={editor.isSaving}
-          >
-            {editor.isSaving ? 'Enregistrement…' : 'Enregistrer le brouillon'}
-          </Button>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.25 }}>
+            <Button
+              type="submit"
+              form={FORM_ID}
+              variant="outlined"
+              disabled={editor.isSaving}
+              aria-busy={editor.isSaving}
+              sx={{ minHeight: 56 }}
+            >
+              {editor.isSaving ? 'Enregistrement…' : 'Enregistrer'}
+            </Button>
+            <Button
+              variant="contained"
+              onClick={editor.onSend}
+              disabled={editor.isSaving}
+              aria-haspopup="dialog"
+              sx={{ minHeight: 56 }}
+            >
+              Envoyer au client
+            </Button>
+          </Box>
         </>
       }
     >
@@ -243,7 +268,17 @@ export function QuoteEditorScreen({
         <LegalMentionsList mentions={mentions} />
 
         {quoteId && number ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1 }}>
+          <Box
+            sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, pt: 1 }}
+          >
+            <Button
+              component="a"
+              href={`/devis/${quoteId}/pdf`}
+              variant="text"
+              startIcon={<FileDownloadOutlinedIcon />}
+            >
+              Télécharger l’aperçu PDF
+            </Button>
             <DeleteQuoteDraftButton
               quoteId={quoteId}
               number={number}
@@ -253,6 +288,21 @@ export function QuoteEditorScreen({
           </Box>
         ) : null}
       </Box>
+      {/* Hors du <form> : React propage « submit » à travers les portails. */}
+      <SendQuoteDialog
+        open={send.isOpen}
+        mode="send"
+        clientName={clientName || 'votre client'}
+        totalLabel={isFranchise ? 'Total à payer' : 'Total TTC'}
+        totalValue={formatCents(editor.totals.ttcCents)}
+        email={send.email}
+        emailError={send.emailError}
+        error={send.error}
+        isSending={send.isSending}
+        onEmailChange={send.onEmailChange}
+        onConfirm={send.confirm}
+        onClose={send.close}
+      />
     </MobileScreen>
   );
 }
