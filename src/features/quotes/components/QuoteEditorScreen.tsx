@@ -18,6 +18,7 @@ import { buildLegalMentions } from '../domain/legalMentions';
 import type { ClientOption, QuoteFormValues } from '../domain/types';
 import { NEW_CLIENT } from '../domain/types';
 import { useQuoteEditor } from '../hooks/useQuoteEditor';
+import { DeleteQuoteDraftButton } from './DeleteQuoteDraftButton';
 import { LegalMentionsList } from './LegalMentionsList';
 import { QuoteLineCard } from './QuoteLineCard';
 import { QuoteTotalsBar } from './QuoteTotalsBar';
@@ -240,6 +241,17 @@ export function QuoteEditorScreen({
         </Box>
 
         <LegalMentionsList mentions={mentions} />
+
+        {quoteId && number ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1 }}>
+            <DeleteQuoteDraftButton
+              quoteId={quoteId}
+              number={number}
+              variant="text"
+              redirectTo="/devis"
+            />
+          </Box>
+        ) : null}
       </Box>
     </MobileScreen>
   );

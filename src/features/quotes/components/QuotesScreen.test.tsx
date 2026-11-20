@@ -4,6 +4,10 @@ import type { QuoteSummary } from '../domain/types';
 import { QuotesScreen } from './QuotesScreen';
 
 jest.mock('@/features/auth/actions/signOut', () => ({ signOut: jest.fn() }));
+jest.mock('../actions/deleteQuoteDraft', () => ({ deleteQuoteDraft: jest.fn() }));
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: jest.fn(), replace: jest.fn() }),
+}));
 
 const QUOTE: QuoteSummary = {
   id: '6f1c2c1e-9d7a-4c8e-8a51-3f2d9c0b7a11',
@@ -42,6 +46,21 @@ describe('QuotesScreen', () => {
     expect(within(card).getByText('Brouillon')).toBeInTheDocument();
     expect(within(card).getByText(/628,00/)).toBeInTheDocument();
     expect(screen.queryByText('Aucun devis pour l’instant')).not.toBeInTheDocument();
+  });
+
+  it('propose la suppression pour un brouillon seulement, hors du lien de la carte', () => {
+    renderWithTheme(
+      <QuotesScreen
+        hasCompany
+        quotes={[QUOTE, { ...QUOTE, id: 'b2', number: 'D-2026-002', status: 'sent' }]}
+      />,
+    );
+
+    const remove = screen.getByRole('button', { name: 'Supprimer le brouillon D-2026-001' });
+    expect(remove.closest('a')).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Supprimer le brouillon D-2026-002' }),
+    ).not.toBeInTheDocument();
   });
 
   it('invite à compléter l’entreprise tant qu’elle est vide', () => {

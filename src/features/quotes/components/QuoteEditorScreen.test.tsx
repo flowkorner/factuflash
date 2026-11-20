@@ -8,8 +8,9 @@ import type { ClientOption } from '../domain/types';
 import { QuoteEditorScreen } from './QuoteEditorScreen';
 
 const push = jest.fn();
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push, replace: jest.fn() }) }));
 jest.mock('../actions/saveQuoteDraft', () => ({ saveQuoteDraft: jest.fn() }));
+jest.mock('../actions/deleteQuoteDraft', () => ({ deleteQuoteDraft: jest.fn() }));
 
 const mockedSave = jest.mocked(saveQuoteDraft);
 const CLIENTS: ClientOption[] = [
@@ -107,6 +108,26 @@ describe('QuoteEditorScreen', () => {
       }),
     );
     expect(push).toHaveBeenCalledWith('/devis');
+  });
+
+  it('ne propose la suppression du brouillon qu’une fois enregistré', () => {
+    setup();
+    expect(
+      screen.queryByRole('button', { name: 'Supprimer ce brouillon' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('propose la suppression sur un brouillon existant', () => {
+    renderWithTheme(
+      <QuoteEditorScreen
+        quoteId="6f1c2c1e-9d7a-4c8e-8a51-3f2d9c0b7a11"
+        number="D-2026-001"
+        initialValues={newQuoteValues([], 'subject')}
+        clients={[]}
+        company={{ name: 'Plomberie Durand', siret: '81234567800013', vatMode: 'subject' }}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Supprimer ce brouillon' })).toBeInTheDocument();
   });
 
   it('supprime une ligne mais en garde toujours une', async () => {

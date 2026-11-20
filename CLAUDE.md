@@ -62,3 +62,5 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 - Ticket 2 : connexion par vrai lien magique Supabase, bouton « Se déconnecter » sur Mes devis.
 - Ticket 3 : écran Mon entreprise (`/entreprise`), table `companies` + bucket `logos`. Première connexion → `/entreprise`.
 - Ticket 4 : devis saisis à la main (brouillons) : clients, lignes, totaux, numérotation `D-AAAA-NNN`, mentions légales.
+- Suppression d'un brouillon (carte de Mes devis et écran du devis), confirmée par `ConfirmDialog` (jamais `window.confirm`).
+  Un numéro supprimé n'est jamais réattribué.
