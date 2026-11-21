@@ -36,6 +36,10 @@ export interface PublicQuote {
   sentAt: string | null;
   acceptedAt: string | null;
   acceptedByName: string | null;
+  depositPercent: number;
+  depositCents: number | null;
+  depositPaidAt: string | null;
+  depositPaidCents: number;
   snapshot: QuoteSnapshot;
 }
 
@@ -174,7 +178,7 @@ export function parseQuoteSnapshot(value: unknown): QuoteSnapshot | null {
   };
 }
 
-const STATUSES: readonly string[] = ['draft', 'sent', 'accepted', 'declined'];
+const STATUSES: readonly string[] = ['draft', 'sent', 'accepted', 'declined', 'deposit_paid'];
 
 function isStatus(value: string): value is QuoteStatus {
   return STATUSES.includes(value);
@@ -189,6 +193,14 @@ export function parsePublicQuote(value: unknown): PublicQuote | null {
   const sentAt = nullableText(value, 'sentAt');
   const acceptedAt = nullableText(value, 'acceptedAt');
   const acceptedByName = nullableText(value, 'acceptedByName');
+  const depositPercent = integer(value, 'depositPercent');
+  const rawDepositCents = value.depositCents;
+  const depositCents =
+    rawDepositCents === null || rawDepositCents === undefined
+      ? null
+      : integer(value, 'depositCents');
+  const depositPaidAt = nullableText(value, 'depositPaidAt');
+  const depositPaidCents = integer(value, 'depositPaidCents');
   const snapshot = parseQuoteSnapshot(value.snapshot);
   if (
     status === null ||
@@ -198,9 +210,25 @@ export function parsePublicQuote(value: unknown): PublicQuote | null {
     sentAt === undefined ||
     acceptedAt === undefined ||
     acceptedByName === undefined ||
+    depositPercent === null ||
+    (rawDepositCents !== null && rawDepositCents !== undefined && depositCents === null) ||
+    depositPaidAt === undefined ||
+    depositPaidCents === null ||
     snapshot === null
   ) {
     return null;
   }
-  return { status, issueDate, validUntil, sentAt, acceptedAt, acceptedByName, snapshot };
+  return {
+    status,
+    issueDate,
+    validUntil,
+    sentAt,
+    acceptedAt,
+    acceptedByName,
+    depositPercent,
+    depositCents,
+    depositPaidAt,
+    depositPaidCents,
+    snapshot,
+  };
 }

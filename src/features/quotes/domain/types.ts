@@ -89,6 +89,8 @@ export interface QuoteSummary {
   issueDate: string;
   clientName: string;
   totalTtcCents: number;
+  /** Total des acomptes reçus (webhook Stripe). */
+  depositPaidCents: number;
 }
 
 export interface QuoteForEdit {

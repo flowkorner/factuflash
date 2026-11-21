@@ -12,6 +12,7 @@ const STATUS_COLORS: Record<QuoteStatus, { bg: string; fg: string }> = {
   sent: { bg: colors.statusSentBg, fg: colors.statusSentFg },
   accepted: { bg: colors.statusAcceptedBg, fg: colors.statusAcceptedFg },
   declined: { bg: colors.statusDeclinedBg, fg: colors.statusDeclinedFg },
+  deposit_paid: { bg: colors.successBg, fg: colors.successFg },
 };
 
 interface QuoteCardProps {
@@ -21,6 +22,8 @@ interface QuoteCardProps {
 export function QuoteCard({ quote }: QuoteCardProps) {
   const status = STATUS_COLORS[quote.status];
   const amount = formatCents(quote.totalTtcCents);
+  const depositLabel =
+    quote.depositPaidCents > 0 ? `Acompte reçu : ${formatCents(quote.depositPaidCents)}` : null;
 
   return (
     // Cadre commun : le lien et le bouton de suppression sont frères (pas de bouton dans un lien).
@@ -38,7 +41,16 @@ export function QuoteCard({ quote }: QuoteCardProps) {
       <Box
         component={Link}
         href={`/devis/${quote.id}`}
-        aria-label={`${quote.number}, ${quote.clientName}, ${quote.title}, ${STATUS_LABELS[quote.status]}, ${amount}`}
+        aria-label={[
+          quote.number,
+          quote.clientName,
+          quote.title,
+          STATUS_LABELS[quote.status],
+          amount,
+          depositLabel,
+        ]
+          .filter(Boolean)
+          .join(', ')}
         sx={{
           flex: 1,
           minWidth: 0,
@@ -89,6 +101,14 @@ export function QuoteCard({ quote }: QuoteCardProps) {
             {amount}
           </Typography>
         </Box>
+        {depositLabel ? (
+          <Typography
+            component="span"
+            sx={{ fontSize: 14, fontWeight: 600, color: colors.successFg }}
+          >
+            {depositLabel}
+          </Typography>
+        ) : null}
       </Box>
       {quote.status === 'draft' ? (
         <Box

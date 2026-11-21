@@ -9,7 +9,15 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import Typography from '@mui/material/Typography';
 import { LabeledInput } from '@/components/LabeledInput';
+import { LabeledSelect } from '@/components/LabeledSelect';
 import { colors } from '@/theme/tokens';
+import { DEPOSIT_OPTIONS, depositCents } from '../domain/deposit';
+import { formatCents } from '../domain/money';
+
+const DEPOSIT_SELECT_OPTIONS = DEPOSIT_OPTIONS.map((percent) => ({
+  value: String(percent),
+  label: percent === 0 ? 'Pas d’acompte' : `${percent} %`,
+}));
 
 interface SendQuoteDialogProps {
   open: boolean;
@@ -18,6 +26,10 @@ interface SendQuoteDialogProps {
   clientName: string;
   totalLabel: string;
   totalValue: string;
+  /** Total TTC en centimes, pour afficher le montant de l'acompte. */
+  totalCents: number;
+  depositPercent: number;
+  onDepositChange: (event: ChangeEvent<HTMLSelectElement>) => void;
   email: string;
   emailError: string | null;
   error: string | null;
@@ -33,6 +45,9 @@ export function SendQuoteDialog({
   clientName,
   totalLabel,
   totalValue,
+  totalCents,
+  depositPercent,
+  onDepositChange,
   email,
   emailError,
   error,
@@ -89,6 +104,24 @@ export function SendQuoteDialog({
             autoComplete="off"
             maxLength={254}
           />
+          {isFirstSend ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+              <LabeledSelect
+                id="send-deposit"
+                name="depositPercent"
+                label="Acompte demandé à l’acceptation"
+                value={String(depositPercent)}
+                options={DEPOSIT_SELECT_OPTIONS}
+                onChange={onDepositChange}
+              />
+              {depositPercent > 0 ? (
+                <Typography sx={{ fontSize: 14, color: 'text.secondary' }}>
+                  Le client paiera {formatCents(depositCents(totalCents, depositPercent))} par
+                  carte, en ligne.
+                </Typography>
+              ) : null}
+            </Box>
+          ) : null}
           {isFirstSend ? (
             <Box
               sx={{

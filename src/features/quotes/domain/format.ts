@@ -5,6 +5,7 @@ export const STATUS_LABELS: Record<QuoteStatus, string> = {
   sent: 'Envoyé',
   accepted: 'Accepté',
   declined: 'Refusé',
+  deposit_paid: 'Acompte payé',
 };
 
 const DATE_FORMAT = new Intl.DateTimeFormat('fr-FR', {

@@ -17,6 +17,7 @@ const QUOTE: QuoteSummary = {
   issueDate: '2026-11-19',
   clientName: 'M. Martin',
   totalTtcCents: 62800,
+  depositPaidCents: 0,
 };
 
 describe('QuotesScreen', () => {
@@ -46,6 +47,19 @@ describe('QuotesScreen', () => {
     expect(within(card).getByText('Brouillon')).toBeInTheDocument();
     expect(within(card).getByText(/628,00/)).toBeInTheDocument();
     expect(screen.queryByText('Aucun devis pour l’instant')).not.toBeInTheDocument();
+  });
+
+  it('affiche le badge « Acompte payé » et le montant reçu', () => {
+    renderWithTheme(
+      <QuotesScreen
+        hasCompany
+        quotes={[{ ...QUOTE, status: 'deposit_paid', depositPaidCents: 18840 }]}
+      />,
+    );
+
+    const card = screen.getByRole('link', { name: /D-2026-001/ });
+    expect(within(card).getByText('Acompte payé')).toBeInTheDocument();
+    expect(within(card).getByText(/Acompte reçu : 188,40/)).toBeInTheDocument();
   });
 
   it('propose la suppression pour un brouillon seulement, hors du lien de la carte', () => {

@@ -1,6 +1,7 @@
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
+import { colors } from '@/theme/tokens';
 import type { QuoteDocumentView } from '../document/documentView';
 
 interface QuoteDocumentProps {
@@ -173,6 +174,34 @@ export function QuoteDocument({ view }: QuoteDocumentProps) {
               {view.totalValue}
             </Typography>
           </Box>
+          {view.deposit ? (
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: 14,
+                fontWeight: 600,
+                color: colors.primaryDark,
+              }}
+            >
+              <span>{view.deposit.label}</span>
+              <span>{view.deposit.amount}</span>
+            </Box>
+          ) : null}
+          {view.deposit?.paid ? (
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: 14,
+                fontWeight: 600,
+                color: colors.successFg,
+              }}
+            >
+              <span>Acompte reçu le {view.deposit.paid.atLabel}</span>
+              <span>{view.deposit.paid.amount}</span>
+            </Box>
+          ) : null}
         </Box>
       </Box>
 

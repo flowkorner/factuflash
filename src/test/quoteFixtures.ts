@@ -89,6 +89,7 @@ export function sampleView(
     acceptedByName: null,
     logoUrl: null,
     fallbackMentions: [],
+    deposit: null,
     ...overrides,
   });
 }

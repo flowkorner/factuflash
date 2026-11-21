@@ -158,6 +158,18 @@ export function QuotePdf({ view, logo }: QuotePdfProps) {
             <Text>{t(view.totalLabel)}</Text>
             <Text>{t(view.totalValue)}</Text>
           </View>
+          {view.deposit ? (
+            <View style={styles.totalRow}>
+              <Text>{t(view.deposit.label)}</Text>
+              <Text>{t(view.deposit.amount)}</Text>
+            </View>
+          ) : null}
+          {view.deposit?.paid ? (
+            <View style={styles.totalRow}>
+              <Text>{t(`Acompte reçu le ${view.deposit.paid.atLabel}`)}</Text>
+              <Text>{t(view.deposit.paid.amount)}</Text>
+            </View>
+          ) : null}
         </View>
 
         {view.acceptance ? (

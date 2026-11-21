@@ -14,9 +14,14 @@ jest.mock('@/features/company/data/getCurrentCompany', () => ({ getCurrentCompan
 
 const rpc = jest.fn();
 const maybeSingle = jest.fn();
+const summary = jest.fn();
 jest.mocked(createSupabaseServerClient).mockResolvedValue({
   rpc,
-  from: () => ({ select: () => ({ eq: () => ({ maybeSingle }) }) }),
+  from: (table: string) => ({
+    select: () => ({
+      eq: () => ({ maybeSingle: table === 'quote_summaries' ? summary : maybeSingle }),
+    }),
+  }),
   auth: { getUser: () => Promise.resolve({ data: { user: { email: 'artisan@exemple.fr' } } }) },
 } as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>);
 const mockedEmail = jest.mocked(sendEmail);
@@ -34,6 +39,7 @@ describe('sendQuote', () => {
       logoUrl: null,
     });
     maybeSingle.mockResolvedValue({ data: { validity_days: 30 } });
+    summary.mockResolvedValue({ data: { total_ttc_cents: 62800 } });
     rpc.mockResolvedValue({
       data: { number: 'D-2026-001', validUntil: '2026-12-20', snapshot: RAW_SNAPSHOT },
       error: null,
@@ -42,7 +48,9 @@ describe('sendQuote', () => {
   });
 
   it('stocke l’empreinte du jeton et met le vrai lien dans l’email', async () => {
-    await expect(sendQuote({ quoteId: 'q1', email: ' Martin@Example.FR ' })).resolves.toEqual({
+    await expect(
+      sendQuote({ quoteId: 'q1', email: ' Martin@Example.FR ', depositPercent: 30 }),
+    ).resolves.toEqual({
       ok: true,
       sentTo: 'martin@example.fr',
     });
@@ -51,10 +59,15 @@ describe('sendQuote', () => {
       p_token_hash: string;
       p_recipient_email: string;
       p_mentions: string[];
+      p_deposit_percent: number;
     };
     expect(rpc.mock.calls[0]?.[0]).toBe('send_quote');
     expect(args.p_recipient_email).toBe('martin@example.fr');
     expect(args.p_mentions).toContain('Devis gratuit.');
+    expect(args.p_deposit_percent).toBe(30);
+    expect(args.p_mentions.join(' ').replace(/\s/g, ' ')).toContain(
+      'Acompte de 30 % du montant TTC (188,40 €), payable à l’acceptation du devis.',
+    );
 
     const email = mockedEmail.mock.calls[0]?.[0];
     const token = /\/d\/([A-Za-z0-9_-]{43})/.exec(email?.text ?? '')?.[1] ?? '';
@@ -69,8 +82,19 @@ describe('sendQuote', () => {
     });
   });
 
+  it('refuse un pourcentage d’acompte non proposé', async () => {
+    await expect(
+      sendQuote({ quoteId: 'q1', email: 'martin@example.fr', depositPercent: 95 }),
+    ).resolves.toMatchObject({
+      ok: false,
+    });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
   it('refuse un email invalide sans rien verrouiller', async () => {
-    await expect(sendQuote({ quoteId: 'q1', email: 'pas-un-email' })).resolves.toMatchObject({
+    await expect(
+      sendQuote({ quoteId: 'q1', email: 'pas-un-email', depositPercent: 30 }),
+    ).resolves.toMatchObject({
       ok: false,
       field: 'email',
     });
@@ -80,7 +104,9 @@ describe('sendQuote', () => {
   it('prévient que le devis est verrouillé si l’email ne part pas', async () => {
     mockedEmail.mockResolvedValue({ ok: false, reason: 'resend_403' });
 
-    await expect(sendQuote({ quoteId: 'q1', email: 'martin@example.fr' })).resolves.toMatchObject({
+    await expect(
+      sendQuote({ quoteId: 'q1', email: 'martin@example.fr', depositPercent: 30 }),
+    ).resolves.toMatchObject({
       ok: false,
       sentButEmailFailed: true,
     });
@@ -89,7 +115,9 @@ describe('sendQuote', () => {
   it('traduit un refus de la base (devis déjà accepté)', async () => {
     rpc.mockResolvedValue({ data: null, error: { code: 'P0001', message: 'quote_not_sendable' } });
 
-    await expect(sendQuote({ quoteId: 'q1', email: 'martin@example.fr' })).resolves.toEqual({
+    await expect(
+      sendQuote({ quoteId: 'q1', email: 'martin@example.fr', depositPercent: 30 }),
+    ).resolves.toEqual({
       ok: false,
       message: 'Ce devis a déjà été accepté : il ne peut plus être renvoyé.',
     });

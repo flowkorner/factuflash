@@ -29,10 +29,15 @@ describe('parsePublicQuote', () => {
       sentAt: '2026-11-20T10:00:00+00:00',
       acceptedAt: '2026-11-21T13:32:00+00:00',
       acceptedByName: 'Jean Martin',
+      depositPercent: 30,
+      depositCents: 18840,
+      depositPaidAt: null,
+      depositPaidCents: 0,
       snapshot: RAW_SNAPSHOT,
     });
     expect(quote).toMatchObject({ status: 'accepted', acceptedByName: 'Jean Martin' });
     expect(parsePublicQuote(null)).toBeNull();
+    expect(quote).toMatchObject({ depositPercent: 30, depositCents: 18840, depositPaidCents: 0 });
   });
 });
 
