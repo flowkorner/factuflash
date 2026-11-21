@@ -106,17 +106,34 @@ export interface PublicQuoteDocument {
   isExpired: boolean;
 }
 
-/** Devis vu par le client via son lien secret (sans compte). null si le lien ne correspond à rien. */
-export async function getPublicQuoteDocument(token: string): Promise<PublicQuoteDocument | null> {
-  if (!isPublicTokenShape(token)) return null;
+/**
+ * Résultat de lecture publique :
+ * - `found` : le devis ;
+ * - `not_found` : le lien ne correspond à rien (ou a été remplacé) ;
+ * - `unavailable` : la base n'a pas répondu (panne passagère) — la page ne doit jamais planter pour ça.
+ */
+export type PublicQuoteResult =
+  ({ kind: 'found' } & PublicQuoteDocument) | { kind: 'not_found' } | { kind: 'unavailable' };
+
+/** Devis vu par le client via son lien secret (sans compte). */
+export async function getPublicQuoteDocument(token: string): Promise<PublicQuoteResult> {
+  if (!isPublicTokenShape(token)) return { kind: 'not_found' };
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc('get_public_quote', { p_token: token });
-  if (error) throw new Error(`Lecture du devis impossible (${error.code})`);
+  if (error) {
+    // Erreur réseau ou délai dépassé : code vide, d'où le message journalisé en plus.
+    console.error('[devis public] lecture impossible', {
+      code: error.code,
+      message: error.message,
+    });
+    return { kind: 'unavailable' };
+  }
   const quote = parsePublicQuote(data);
-  if (!quote) return null;
+  if (!quote) return { kind: 'not_found' };
 
   const today = new Date().toISOString().slice(0, 10);
   return {
+    kind: 'found',
     quote,
     isExpired: quote.status === 'sent' && today > quote.validUntil,
     view: buildDocumentView(quote.snapshot, {

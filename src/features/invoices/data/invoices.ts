@@ -73,24 +73,36 @@ export async function getArtisanInvoiceDocument(
   };
 }
 
-/** Facture vue par le client via son lien secret. */
-export async function getPublicInvoiceDocument(token: string): Promise<InvoiceDocumentView | null> {
-  if (!isPublicTokenShape(token)) return null;
+export type PublicInvoiceResult =
+  { kind: 'found'; view: InvoiceDocumentView } | { kind: 'not_found' } | { kind: 'unavailable' };
+
+/** Facture vue par le client via son lien secret. Une panne de la base ne fait jamais planter la page. */
+export async function getPublicInvoiceDocument(token: string): Promise<PublicInvoiceResult> {
+  if (!isPublicTokenShape(token)) return { kind: 'not_found' };
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc('get_public_invoice', { p_token: token });
-  if (error) throw new Error(`Lecture de la facture impossible (${error.code})`);
+  if (error) {
+    console.error('[facture publique] lecture impossible', {
+      code: error.code,
+      message: error.message,
+    });
+    return { kind: 'unavailable' };
+  }
   const invoice = parsePublicInvoice(data);
-  if (!invoice) return null;
+  if (!invoice) return { kind: 'not_found' };
   const logoUrl = invoice.snapshot.company.logoPath
     ? supabase.storage.from(LOGOS_BUCKET).getPublicUrl(invoice.snapshot.company.logoPath).data
         .publicUrl
     : null;
-  return buildInvoiceView(invoice.snapshot, {
-    issueDate: invoice.issueDate,
-    dueDate: invoice.dueDate,
-    serviceDate: invoice.serviceDate,
-    paidOn: invoice.paidOn,
-    paymentMethod: invoice.paymentMethod,
-    logoUrl,
-  });
+  return {
+    kind: 'found',
+    view: buildInvoiceView(invoice.snapshot, {
+      issueDate: invoice.issueDate,
+      dueDate: invoice.dueDate,
+      serviceDate: invoice.serviceDate,
+      paidOn: invoice.paidOn,
+      paymentMethod: invoice.paymentMethod,
+      logoUrl,
+    }),
+  };
 }

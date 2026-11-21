@@ -10,6 +10,12 @@ export async function GET(
 ) {
   const { token } = await params;
   const document = await getPublicQuoteDocument(token);
-  if (!document) return new Response('Devis introuvable', { status: 404 });
+  if (document.kind === 'unavailable') {
+    return new Response('Service momentanément indisponible, réessayez dans un instant.', {
+      status: 503,
+      headers: { 'Retry-After': '10' },
+    });
+  }
+  if (document.kind === 'not_found') return new Response('Devis introuvable', { status: 404 });
   return pdfResponse(await renderQuotePdf(document.view), document.view.number);
 }

@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getSupabaseEnv } from '@/lib/env';
+import { fetchWithTimeout } from './fetchWithTimeout';
 
 const PROTECTED_PREFIXES = ['/devis', '/entreprise', '/factures'] as const;
 const GUEST_ONLY_PREFIXES = ['/connexion'] as const;
@@ -32,6 +33,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   const { url, publishableKey } = getSupabaseEnv();
 
   const supabase = createServerClient(url, publishableKey, {
+    global: { fetch: fetchWithTimeout() },
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (cookiesToSet, headers) => {
@@ -46,8 +48,11 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   });
 
   // Ne rien exécuter entre la création du client et cet appel (recommandation Supabase).
-  const { data } = await supabase.auth.getClaims();
-  const isAuthenticated = Boolean(data?.claims);
+  // Supabase injoignable : on considère la session absente plutôt que de bloquer la page.
+  const isAuthenticated = await supabase.auth
+    .getClaims()
+    .then(({ data }) => Boolean(data?.claims))
+    .catch(() => false);
   const { pathname } = request.nextUrl;
 
   if (!isAuthenticated && matches(pathname, PROTECTED_PREFIXES)) {

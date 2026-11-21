@@ -8,7 +8,13 @@ export async function GET(
   { params }: { params: Promise<{ token: string }> },
 ) {
   const { token } = await params;
-  const view = await getPublicInvoiceDocument(token);
-  if (!view) return new Response('Facture introuvable', { status: 404 });
-  return invoicePdfResponse(await renderInvoicePdf(view), view.number);
+  const result = await getPublicInvoiceDocument(token);
+  if (result.kind === 'unavailable') {
+    return new Response('Service momentanément indisponible, réessayez dans un instant.', {
+      status: 503,
+      headers: { 'Retry-After': '10' },
+    });
+  }
+  if (result.kind === 'not_found') return new Response('Facture introuvable', { status: 404 });
+  return invoicePdfResponse(await renderInvoicePdf(result.view), result.view.number);
 }

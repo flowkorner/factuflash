@@ -7,6 +7,7 @@ import { BrandLogo } from '@/components/BrandLogo';
 import { MobileScreen } from '@/components/MobileScreen';
 import { InvoiceDocument } from '@/features/invoices/components/InvoiceDocument';
 import { getPublicInvoiceDocument } from '@/features/invoices/data/invoices';
+import { PublicQuoteUnavailable } from '@/features/quotes/components/PublicQuoteUnavailable';
 
 // Lien secret : jamais indexé, jamais transmis à un autre site.
 export const metadata: Metadata = {
@@ -21,9 +22,13 @@ export default async function PublicInvoicePage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const view = await getPublicInvoiceDocument(token);
+  const result = await getPublicInvoiceDocument(token);
 
-  if (!view) {
+  if (result.kind === 'unavailable') {
+    return <PublicQuoteUnavailable isPaymentReturn={false} document="facture" />;
+  }
+
+  if (result.kind === 'not_found') {
     return (
       <MobileScreen>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 9 }}>
@@ -40,6 +45,7 @@ export default async function PublicInvoicePage({
     );
   }
 
+  const { view } = result;
   return (
     <MobileScreen
       header={

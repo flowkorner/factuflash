@@ -60,7 +60,7 @@ export function PublicQuoteScreen({
   const isDepositPaid = view.status === 'deposit_paid' || Boolean(deposit?.paid);
   const needsDeposit = accept.accepted !== null && deposit !== null && !isDepositPaid;
   const isWaitingConfirmation = isPaymentReturn && needsDeposit;
-  const { timedOut } = usePaymentConfirmation(isWaitingConfirmation);
+  const { timedOut, retry } = usePaymentConfirmation(isWaitingConfirmation);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const showPayButton = needsDeposit && !isWaitingConfirmation && !isPaymentOpen;
 
@@ -216,9 +216,18 @@ export function PublicQuoteScreen({
               </Typography>
               <Typography sx={{ fontSize: 15 }}>
                 {timedOut
-                  ? 'Si votre carte a été débitée, le paiement apparaîtra ici dans quelques minutes. Inutile de payer à nouveau : rechargez la page plus tard.'
+                  ? 'Nous n’avons pas encore reçu la confirmation de Stripe. Si votre carte a été débitée, le paiement sera pris en compte automatiquement : ne payez pas une seconde fois.'
                   : 'Cela prend quelques secondes. Ne payez pas une seconde fois.'}
               </Typography>
+              {timedOut ? (
+                <Button
+                  variant="outlined"
+                  onClick={retry}
+                  sx={{ mt: 1.5, bgcolor: 'background.paper' }}
+                >
+                  Vérifier à nouveau
+                </Button>
+              ) : null}
             </Box>
           </Box>
         ) : null}

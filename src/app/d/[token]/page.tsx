@@ -4,6 +4,7 @@ import Typography from '@mui/material/Typography';
 import { BrandLogo } from '@/components/BrandLogo';
 import { MobileScreen } from '@/components/MobileScreen';
 import { PublicQuoteScreen } from '@/features/quotes/components/PublicQuoteScreen';
+import { PublicQuoteUnavailable } from '@/features/quotes/components/PublicQuoteUnavailable';
 import { getPublicQuoteDocument } from '@/features/quotes/document/quoteDocuments';
 
 // Lien secret : jamais indexé, et jamais transmis à un autre site via l'en-tête Referer.
@@ -20,9 +21,15 @@ interface PublicQuotePageProps {
 
 export default async function PublicQuotePage({ params, searchParams }: PublicQuotePageProps) {
   const [{ token }, { paiement }] = await Promise.all([params, searchParams]);
-  const document = await getPublicQuoteDocument(token);
+  // Seule la présence du paramètre compte : le statut affiché vient toujours de la base.
+  const isPaymentReturn = typeof paiement === 'string';
+  const result = await getPublicQuoteDocument(token);
 
-  if (!document) {
+  if (result.kind === 'unavailable') {
+    return <PublicQuoteUnavailable isPaymentReturn={isPaymentReturn} />;
+  }
+
+  if (result.kind === 'not_found') {
     return (
       <MobileScreen>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 9 }}>
@@ -39,14 +46,13 @@ export default async function PublicQuotePage({ params, searchParams }: PublicQu
     );
   }
 
-  const { quote, view, isExpired } = document;
+  const { quote, view, isExpired } = result;
   return (
     <PublicQuoteScreen
       token={token}
       view={view}
       isExpired={isExpired}
-      // Seule la présence du paramètre compte : le statut affiché vient toujours de la base.
-      isPaymentReturn={typeof paiement === 'string'}
+      isPaymentReturn={isPaymentReturn}
       initialAcceptance={
         quote.acceptedAt && quote.acceptedByName
           ? { acceptedAt: quote.acceptedAt, acceptedByName: quote.acceptedByName }
