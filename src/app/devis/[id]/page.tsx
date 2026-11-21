@@ -6,6 +6,7 @@ import { QuoteSentScreen } from '@/features/quotes/components/QuoteSentScreen';
 import type { SentNotice } from '@/features/quotes/components/QuoteSentScreen';
 import { getQuoteForEdit, listClients } from '@/features/quotes/data/quotes';
 import { getArtisanQuoteDocument } from '@/features/quotes/document/quoteDocuments';
+import { listQuoteInvoices } from '@/features/invoices/data/invoices';
 
 export const metadata: Metadata = {
   title: 'Devis',
@@ -29,11 +30,14 @@ export default async function DevisPage({ params, searchParams }: DevisPageProps
 
   // Envoyé ou accepté : lecture seule, tel que le client le voit.
   if (quote.status !== 'draft') {
-    const document = await getArtisanQuoteDocument(id);
+    const [document, invoices] = await Promise.all([
+      getArtisanQuoteDocument(id),
+      listQuoteInvoices(id),
+    ]);
     if (!document) notFound();
     const notice: SentNotice =
       query.envoye === '1' ? 'sent' : query['echec-email'] === '1' ? 'email-failed' : null;
-    return <QuoteSentScreen document={document} notice={notice} />;
+    return <QuoteSentScreen document={document} notice={notice} invoices={invoices} />;
   }
 
   return (

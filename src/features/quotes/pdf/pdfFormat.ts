@@ -1,6 +1,9 @@
-/** Les polices standard du PDF ne connaissent pas l'espace fine insécable (format français). */
+/**
+ * Les polices standard du PDF ne connaissent ni les espaces insécables du format français
+ * (U+202F, U+00A0) ni le signe moins typographique (U+2212) : on les remplace.
+ */
 export function pdfText(value: string): string {
-  return value.replace(/[  ]/g, ' ');
+  return value.replace(/[\u202f\u00a0]/g, ' ').replace(/\u2212/g, '-');
 }
 
 /** Réponse HTTP d'un PDF : téléchargement, jamais mis en cache (contenu personnel). */

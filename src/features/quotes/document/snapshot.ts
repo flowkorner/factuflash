@@ -45,27 +45,27 @@ export interface PublicQuote {
 
 type Data = Record<string, unknown>;
 
-function isRecord(value: unknown): value is Data {
+export function isRecord(value: unknown): value is Data {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function text(data: Data, key: string): string | null {
+export function text(data: Data, key: string): string | null {
   const value = data[key];
   return typeof value === 'string' ? value : null;
 }
 
-function nullableText(data: Data, key: string): string | null | undefined {
+export function nullableText(data: Data, key: string): string | null | undefined {
   const value = data[key];
   if (value === null || value === undefined) return null;
   return typeof value === 'string' ? value : undefined;
 }
 
-function integer(data: Data, key: string): number | null {
+export function integer(data: Data, key: string): number | null {
   const value = data[key];
   return typeof value === 'number' && Number.isInteger(value) ? value : null;
 }
 
-function parseLine(value: unknown): QuoteSnapshot['lines'][number] | null {
+export function parseLine(value: unknown): QuoteSnapshot['lines'][number] | null {
   if (!isRecord(value)) return null;
   const designation = text(value, 'designation');
   const quantity = value.quantity;
@@ -90,7 +90,7 @@ function parseLine(value: unknown): QuoteSnapshot['lines'][number] | null {
   };
 }
 
-function parseVatGroup(value: unknown): QuoteSnapshot['vatGroups'][number] | null {
+export function parseVatGroup(value: unknown): QuoteSnapshot['vatGroups'][number] | null {
   if (!isRecord(value)) return null;
   const rateBp = integer(value, 'rateBp');
   const htCents = integer(value, 'htCents');
@@ -99,7 +99,7 @@ function parseVatGroup(value: unknown): QuoteSnapshot['vatGroups'][number] | nul
   return { rateBp, htCents, vatCents };
 }
 
-function parseList<T>(value: unknown, parse: (item: unknown) => T | null): T[] | null {
+export function parseList<T>(value: unknown, parse: (item: unknown) => T | null): T[] | null {
   if (!Array.isArray(value)) return null;
   const items = value.map(parse);
   return items.every((item): item is T => item !== null) ? items : null;
@@ -178,7 +178,15 @@ export function parseQuoteSnapshot(value: unknown): QuoteSnapshot | null {
   };
 }
 
-const STATUSES: readonly string[] = ['draft', 'sent', 'accepted', 'declined', 'deposit_paid'];
+const STATUSES: readonly string[] = [
+  'draft',
+  'sent',
+  'accepted',
+  'declined',
+  'deposit_paid',
+  'invoiced',
+  'paid',
+];
 
 function isStatus(value: string): value is QuoteStatus {
   return STATUSES.includes(value);

@@ -1,27 +1,45 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-const INTERVAL_MS = 3000;
-const MAX_ATTEMPTS = 10;
+export const CONFIRMATION_INTERVAL_MS = 3000;
+/** Au-delà, on arrête de relire et on l'explique au client (le webhook peut arriver plus tard). */
+export const CONFIRMATION_DEADLINE_MS = 90_000;
+
+export interface PaymentConfirmation {
+  timedOut: boolean;
+  /** Relance une période d'attente (bouton « Vérifier à nouveau »). */
+  retry: () => void;
+}
 
 /**
- * Retour de Stripe : la page ne déduit RIEN de l'URL. Elle relit le statut en base
- * toutes les 3 s (30 s max) jusqu'à ce que le webhook l'ait mis à jour.
+ * Retour de Stripe : la page ne déduit RIEN de l'URL. Elle relit le statut en base toutes les 3 s
+ * jusqu'à ce que le webhook l'ait mis à jour, pendant 90 s au plus (temps réel, et non nombre
+ * d'essais : une relecture lente ne prolonge pas l'attente).
  */
-export function usePaymentConfirmation(waiting: boolean): { timedOut: boolean } {
+export function usePaymentConfirmation(waiting: boolean): PaymentConfirmation {
   const router = useRouter();
-  const [attempts, setAttempts] = useState(0);
+  const [startedAt, setStartedAt] = useState(() => Date.now());
+  const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
-    if (!waiting || attempts >= MAX_ATTEMPTS) return undefined;
-    const id = window.setTimeout(() => {
+    if (!waiting || timedOut) return undefined;
+    const id = window.setInterval(() => {
+      if (Date.now() - startedAt >= CONFIRMATION_DEADLINE_MS) {
+        setTimedOut(true);
+        return;
+      }
       router.refresh();
-      setAttempts((count) => count + 1);
-    }, INTERVAL_MS);
-    return () => window.clearTimeout(id);
-  }, [waiting, attempts, router]);
+    }, CONFIRMATION_INTERVAL_MS);
+    return () => window.clearInterval(id);
+  }, [waiting, timedOut, startedAt, router]);
 
-  return { timedOut: waiting && attempts >= MAX_ATTEMPTS };
+  const retry = useCallback(() => {
+    setStartedAt(Date.now());
+    setTimedOut(false);
+    router.refresh();
+  }, [router]);
+
+  return { timedOut: waiting && timedOut, retry };
 }
