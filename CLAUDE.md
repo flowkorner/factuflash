@@ -88,7 +88,14 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 - Statut « Acompte payé » posé UNIQUEMENT par le webhook signé (`checkout.session.completed` /
   `async_payment_succeeded`, `payment_status = 'paid'`), de façon idempotente. La page de retour ne fait que relire la base.
 - Variables : `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `PAYMENTS_DB_SECRET`
-  (`npm run secret:payments`). Webhook local : `stripe listen --forward-to localhost:3000/api/stripe/webhook`.
+  (`npm run secret:payments`).
+- Webhook local : clé du projet passée à la CLI (pour écouter le même compte Stripe que l'app) et `--events`
+  obligatoire avec la Stripe CLI récente :
+  `export $(grep STRIPE_SECRET_KEY .env.local)` puis
+  `stripe listen --api-key $STRIPE_SECRET_KEY --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed --forward-to localhost:3000/api/stripe/webhook`.
+  Le `whsec_` affiché est propre au compte : le copier dans `STRIPE_WEBHOOK_SECRET`, puis relancer `npm run dev`.
+- Pages publiques robustes : tout appel Supabase a un délai max (`fetchWithTimeout`, 8 s) ; une base injoignable
+  donne un état « indisponible » (jamais une exception). Retour de paiement : relecture toutes les 3 s, 90 s max.
 
 ## Façon de travailler
 
