@@ -38,7 +38,11 @@ describe('QuoteSentScreen', () => {
     const dialog = screen.getByRole('dialog', { name: 'Renvoyer l’email à M. Martin' });
     expect(within(dialog).getByText(/l’ancien ne fonctionnera plus/)).toBeInTheDocument();
     await user.click(within(dialog).getByRole('button', { name: 'Envoyer' }));
-    expect(sendQuote).toHaveBeenCalledWith({ quoteId: 'q1', email: 'martin@example.fr' });
+    expect(sendQuote).toHaveBeenCalledWith({
+      quoteId: 'q1',
+      email: 'martin@example.fr',
+      depositPercent: 30,
+    });
   });
 
   it('montre l’accord du client et ne propose plus de renvoi', () => {

@@ -7,7 +7,9 @@ export async function listQuoteSummaries(): Promise<QuoteSummary[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('quote_summaries')
-    .select('id, number, status, title, issue_date, client_name, total_ttc_cents')
+    .select(
+      'id, number, status, title, issue_date, client_name, total_ttc_cents, deposit_paid_cents',
+    )
     .order('updated_at', { ascending: false })
     .limit(200);
   if (error) throw new Error(`Lecture des devis impossible (${error.code})`);
@@ -19,6 +21,7 @@ export async function listQuoteSummaries(): Promise<QuoteSummary[]> {
     issueDate: row.issue_date,
     clientName: row.client_name,
     totalTtcCents: row.total_ttc_cents,
+    depositPaidCents: row.deposit_paid_cents,
   }));
 }
 

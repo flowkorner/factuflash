@@ -27,6 +27,13 @@ export interface QuoteDocumentView {
   isFranchise: boolean;
   mentions: string[];
   acceptance: { byName: string; atLabel: string } | null;
+  /** null : pas d'acompte (0 %) ou devis pas encore envoyé. */
+  deposit: {
+    label: string;
+    amount: string;
+    amountCents: number;
+    paid: { amount: string; atLabel: string } | null;
+  } | null;
 }
 
 export interface DocumentMeta {
@@ -40,6 +47,12 @@ export interface DocumentMeta {
   logoUrl: string | null;
   /** Mentions calculées pour un brouillon (le snapshot d'un devis envoyé contient les siennes). */
   fallbackMentions: string[];
+  deposit: {
+    percent: number;
+    cents: number | null;
+    paidCents: number;
+    paidAt: string | null;
+  } | null;
 }
 
 const DATE_TIME_FORMAT = new Intl.DateTimeFormat('fr-FR', {
@@ -99,6 +112,21 @@ export function buildDocumentView(snapshot: QuoteSnapshot, meta: DocumentMeta): 
     acceptance:
       meta.acceptedAt && meta.acceptedByName
         ? { byName: meta.acceptedByName, atLabel: formatDateTime(meta.acceptedAt) }
+        : null,
+    deposit:
+      meta.deposit && meta.deposit.percent > 0 && meta.deposit.cents
+        ? {
+            label: `Acompte demandé (${meta.deposit.percent} %)`,
+            amount: formatCents(meta.deposit.cents),
+            amountCents: meta.deposit.cents,
+            paid:
+              meta.deposit.paidAt && meta.deposit.paidCents > 0
+                ? {
+                    amount: formatCents(meta.deposit.paidCents),
+                    atLabel: formatDateTime(meta.deposit.paidAt),
+                  }
+                : null,
+          }
         : null,
   };
 }

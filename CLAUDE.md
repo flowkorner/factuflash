@@ -1,7 +1,7 @@
 # FactuFlash
 
 Devis et factures pour artisans, utilisés sur téléphone.
-Stack : Next.js 15 (App Router, TypeScript strict) · MUI 7 · Supabase (Auth, Postgres + RLS, Storage) · Jest + RTL. Prévu : Stripe (acomptes).
+Stack : Next.js 15 (App Router, TypeScript strict) · MUI 7 · Supabase (Auth, Postgres + RLS, Storage) · Stripe (acomptes, mode test) · Jest + RTL.
 Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844).
 
 ## Commandes
@@ -25,6 +25,8 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 - `supabase/templates/` : modèles d'email à copier dans le tableau de bord Supabase.
 - `src/lib/email/resend.ts` : envoi d'emails (API HTTP Resend, serveur uniquement).
 - `src/features/quotes/document/` : snapshot figé → modèle d'affichage partagé par la page web et le PDF (`pdf/`).
+- `src/features/payments/` : acompte Stripe (session, Payment Element, webhook). `src/lib/stripe/server.ts` : client Stripe.
+- `src/app/api/stripe/webhook/route.ts` : webhook Stripe (hors middleware).
 
 ## Conventions
 
@@ -42,8 +44,10 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 - Toute table a la RLS activée, avec des policies limitées à `auth.uid()`. Les données sont revalidées côté serveur.
 - **Grants explicites dans chaque migration** (le projet n'accorde pas l'accès API automatiquement) :
   `grant select, insert, update … to authenticated;` au plus juste, et `grant execute` pour chaque fonction appelée par l'app.
-  Rien pour `anon`, sauf `get_public_quote` / `accept_public_quote` (security definer, exigent le jeton secret).
-- Statuts des devis : `draft` → `sent` (fonction `send_quote`) → `accepted` (fonction `accept_public_quote`, par le client).
+  Rien pour `anon`, sauf `get_public_quote`, `accept_public_quote`, `prepare_deposit_checkout` (jeton secret exigé)
+  et `record_deposit_payment` (secret serveur exigé, empreinte dans `private.app_secrets`).
+- Statuts des devis : `draft` → `sent` (fonction `send_quote`) → `accepted` (fonction `accept_public_quote`, par le client)
+  → `deposit_paid` (fonction `record_deposit_payment`, par le webhook Stripe uniquement).
   Droits par colonne sur `quotes` : l'artisan ne peut écrire ni statut, ni snapshot, ni jeton, ni acceptation.
 - Lien client : jeton de 256 bits, seule son empreinte SHA-256 est en base. Un renvoi crée un nouveau lien (l'ancien meurt).
 - Fichiers : bucket `logos`, un dossier par utilisateur (`<user_id>/…`), écriture réservée à son propriétaire.
@@ -62,6 +66,16 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 - Variables serveur (jamais `NEXT_PUBLIC_`) : `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_TEST_RECIPIENT` (mode test :
   tout part vers cette adresse). Texte saisi toujours échappé dans le HTML.
 
+## Paiements (Stripe)
+
+- MODE TEST uniquement : `getStripeEnv` refuse une clé live. Checkout Sessions `ui_mode: 'elements'` + Payment Element
+  aux couleurs de l'app (`stripeAppearance.ts`). Jamais de `payment_method_types` : moyens de paiement réglés dans Stripe.
+- Montant de l'acompte fixé à l'envoi (`deposit_percent`, `deposit_cents`), relu en base pour créer la session.
+- Statut « Acompte payé » posé UNIQUEMENT par le webhook signé (`checkout.session.completed` /
+  `async_payment_succeeded`, `payment_status = 'paid'`), de façon idempotente. La page de retour ne fait que relire la base.
+- Variables : `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `PAYMENTS_DB_SECRET`
+  (`npm run secret:payments`). Webhook local : `stripe listen --forward-to localhost:3000/api/stripe/webhook`.
+
 ## Façon de travailler
 
 - Plusieurs tickets peuvent s'enchaîner : appliquer ses recommandations sans demander, et noter chaque choix dans le résumé final.
@@ -78,3 +92,4 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
   Un numéro supprimé n'est jamais réattribué.
 - Ticket 5 : envoi au client par email, page publique `/d/[token]`, acceptation (nom + case « bon pour accord »),
   devis figé à l'envoi (`snapshot`), PDF artisan et client.
+- Ticket 6 : acompte payé en ligne par le client (Stripe, mode test), badge « Acompte payé » et montant reçu.

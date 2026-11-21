@@ -46,7 +46,7 @@ export async function getArtisanQuoteDocument(id: string): Promise<ArtisanQuoteD
   const { data: quote, error } = await supabase
     .from('quotes')
     .select(
-      'id, number, status, issue_date, validity_days, snapshot, sent_at, last_sent_at, sent_to_email, accepted_at, accepted_by_name',
+      'id, number, status, issue_date, validity_days, snapshot, sent_at, last_sent_at, sent_to_email, accepted_at, accepted_by_name, deposit_percent, deposit_cents, deposit_paid_at',
     )
     .eq('id', id)
     .maybeSingle();
@@ -54,6 +54,12 @@ export async function getArtisanQuoteDocument(id: string): Promise<ArtisanQuoteD
   if (!quote) return null;
 
   const isDraft = quote.status === 'draft';
+  // Montant reçu (somme des paiements enregistrés par le webhook).
+  const { data: summary } = await supabase
+    .from('quote_summaries')
+    .select('deposit_paid_cents')
+    .eq('id', id)
+    .maybeSingle();
   const raw = isDraft
     ? (await supabase.rpc('build_quote_snapshot', { p_quote_id: id })).data
     : quote.snapshot;
@@ -78,6 +84,15 @@ export async function getArtisanQuoteDocument(id: string): Promise<ArtisanQuoteD
       acceptedByName: quote.accepted_by_name,
       logoUrl: logoUrl(supabase, snapshot.company.logoPath),
       fallbackMentions: mentionsFor(snapshot),
+      // Brouillon : l'acompte n'est fixé qu'à l'envoi.
+      deposit: isDraft
+        ? null
+        : {
+            percent: quote.deposit_percent,
+            cents: quote.deposit_cents,
+            paidCents: summary?.deposit_paid_cents ?? 0,
+            paidAt: quote.deposit_paid_at,
+          },
     }),
   };
 }
@@ -110,6 +125,12 @@ export async function getPublicQuoteDocument(token: string): Promise<PublicQuote
       acceptedByName: quote.acceptedByName,
       logoUrl: logoUrl(supabase, quote.snapshot.company.logoPath),
       fallbackMentions: mentionsFor(quote.snapshot),
+      deposit: {
+        percent: quote.depositPercent,
+        cents: quote.depositCents,
+        paidCents: quote.depositPaidCents,
+        paidAt: quote.depositPaidAt,
+      },
     }),
   };
 }

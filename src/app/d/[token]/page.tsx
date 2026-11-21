@@ -15,10 +15,11 @@ export const metadata: Metadata = {
 
 interface PublicQuotePageProps {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ paiement?: string | string[] }>;
 }
 
-export default async function PublicQuotePage({ params }: PublicQuotePageProps) {
-  const { token } = await params;
+export default async function PublicQuotePage({ params, searchParams }: PublicQuotePageProps) {
+  const [{ token }, { paiement }] = await Promise.all([params, searchParams]);
   const document = await getPublicQuoteDocument(token);
 
   if (!document) {
@@ -44,6 +45,8 @@ export default async function PublicQuotePage({ params }: PublicQuotePageProps) 
       token={token}
       view={view}
       isExpired={isExpired}
+      // Seule la présence du paramètre compte : le statut affiché vient toujours de la base.
+      isPaymentReturn={typeof paiement === 'string'}
       initialAcceptance={
         quote.acceptedAt && quote.acceptedByName
           ? { acceptedAt: quote.acceptedAt, acceptedByName: quote.acceptedByName }

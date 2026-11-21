@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "jest"
+    "test": "jest",
+    "secret:payments": "node scripts/generate-payments-secret.mjs"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
@@ -20,11 +21,14 @@
     "@mui/material": "^7.3.11",
     "@mui/material-nextjs": "^7.3.10",
     "@react-pdf/renderer": "^4.9.0",
+    "@stripe/react-stripe-js": "^7.1.0",
+    "@stripe/stripe-js": "^10.3.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.1",
     "next": "15.5.29",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "stripe": "^23.2.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

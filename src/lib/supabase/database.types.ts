@@ -3,7 +3,7 @@
  * Peut être régénéré : `npx supabase gen types typescript --project-id <ref>`.
  */
 export type VatModeDb = 'subject' | 'franchise';
-export type QuoteStatusDb = 'draft' | 'sent' | 'accepted' | 'declined';
+export type QuoteStatusDb = 'draft' | 'sent' | 'accepted' | 'declined' | 'deposit_paid';
 export type UnitDb = 'u' | 'h' | 'jour' | 'm' | 'm2' | 'm3' | 'kg' | 'forfait' | 'lot';
 export type SourceDb = 'manual' | 'ai';
 export type VatRateBpDb = 0 | 550 | 1000 | 2000;
@@ -111,6 +111,24 @@ export interface Database {
           sent_to_email: string | null;
           accepted_at: string | null;
           accepted_by_name: string | null;
+          deposit_percent: number;
+          deposit_cents: number | null;
+          deposit_paid_at: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      quote_payments: {
+        Row: {
+          id: string;
+          quote_id: string;
+          user_id: string;
+          stripe_checkout_session_id: string;
+          stripe_payment_intent_id: string | null;
+          amount_cents: number;
+          currency: string;
+          paid_at: string;
         };
         Insert: never;
         Update: never;
@@ -151,6 +169,10 @@ export interface Database {
           total_ttc_cents: number;
           sent_at: string | null;
           accepted_at: string | null;
+          deposit_percent: number;
+          deposit_cents: number | null;
+          deposit_paid_cents: number;
+          deposit_paid_at: string | null;
         };
         Relationships: [];
       };
@@ -179,8 +201,24 @@ export interface Database {
           p_token_hash: string;
           p_recipient_email: string;
           p_mentions: Json;
+          p_deposit_percent: number;
         };
         Returns: Json;
+      };
+      prepare_deposit_checkout: {
+        Args: { p_token: string };
+        Returns: Json;
+      };
+      record_deposit_payment: {
+        Args: {
+          p_secret: string;
+          p_quote_id: string;
+          p_session_id: string;
+          p_payment_intent_id: string | null;
+          p_amount_cents: number;
+          p_currency: string;
+        };
+        Returns: string;
       };
       get_public_quote: {
         Args: { p_token: string };

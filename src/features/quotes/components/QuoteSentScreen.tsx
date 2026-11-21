@@ -104,6 +104,34 @@ export function QuoteSentScreen({ document, notice }: QuoteSentScreenProps) {
           </Box>
         ) : null}
 
+        {view.deposit?.paid ? (
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 1.25,
+              alignItems: 'flex-start',
+              p: 2,
+              borderRadius: '16px',
+              bgcolor: colors.successBg,
+              color: colors.successFg,
+            }}
+          >
+            <CheckCircleOutlineIcon aria-hidden="true" />
+            <Box>
+              <Typography sx={{ fontWeight: 700 }}>
+                Acompte payé : {view.deposit.paid.amount}
+              </Typography>
+              <Typography sx={{ fontSize: 15 }}>
+                Reçu par carte le {view.deposit.paid.atLabel}.
+              </Typography>
+            </Box>
+          </Box>
+        ) : view.deposit && view.acceptance ? (
+          <Typography sx={{ fontSize: 14, color: 'text.secondary' }}>
+            En attente du paiement de l’acompte ({view.deposit.amount}) par le client.
+          </Typography>
+        ) : null}
+
         {document.lastSentAt ? (
           <Typography sx={{ fontSize: 14, color: 'text.secondary' }}>
             {document.sentAt === document.lastSentAt ? 'Envoyé' : 'Dernier envoi'} le{' '}
@@ -120,6 +148,9 @@ export function QuoteSentScreen({ document, notice }: QuoteSentScreenProps) {
         clientName={view.client.name}
         totalLabel={view.totalLabel}
         totalValue={view.totalValue}
+        totalCents={0}
+        depositPercent={send.depositPercent}
+        onDepositChange={send.onDepositChange}
         email={send.email}
         emailError={send.emailError}
         error={send.error}

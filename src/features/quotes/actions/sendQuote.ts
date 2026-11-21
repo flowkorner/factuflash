@@ -8,6 +8,7 @@ import { getCurrentCompany } from '@/features/company/data/getCurrentCompany';
 import { buildLegalMentions } from '../domain/legalMentions';
 import { formatIssueDate } from '../domain/format';
 import { formatCents } from '../domain/money';
+import { depositCents, isDepositPercent } from '../domain/deposit';
 import { buildQuoteEmail } from '../email/quoteEmail';
 import { createPublicToken } from '../document/publicToken';
 import { parseQuoteSnapshot } from '../document/snapshot';
@@ -15,6 +16,8 @@ import { parseQuoteSnapshot } from '../document/snapshot';
 export interface SendQuoteInput {
   quoteId: string;
   email: string;
+  /** Pourcentage d'acompte fixé au premier envoi (ignoré lors d'un renvoi). */
+  depositPercent: number;
 }
 
 export type SendQuoteResult =
@@ -30,6 +33,7 @@ const DB_ERRORS: Record<string, string> = {
   invalid_lines: 'Ajoutez au moins une ligne avant d’envoyer.',
   company_missing: 'Complétez d’abord « Mon entreprise ».',
   invalid_email: 'Cet email ne semble pas valide.',
+  invalid_deposit: 'Pourcentage d’acompte invalide.',
 };
 
 /**
@@ -37,7 +41,11 @@ const DB_ERRORS: Record<string, string> = {
  * Ordre volontaire : la base d'abord (le lien doit exister avant l'email), l'email ensuite.
  * Si l'email échoue, le devis reste « Envoyé » et l'artisan peut le renvoyer.
  */
-export async function sendQuote({ quoteId, email }: SendQuoteInput): Promise<SendQuoteResult> {
+export async function sendQuote({
+  quoteId,
+  email,
+  depositPercent,
+}: SendQuoteInput): Promise<SendQuoteResult> {
   const recipient = email.trim().toLowerCase();
   if (!EMAIL_PATTERN.test(recipient) || recipient.length > 254) {
     return {
@@ -47,24 +55,32 @@ export async function sendQuote({ quoteId, email }: SendQuoteInput): Promise<Sen
     };
   }
 
+  if (!isDepositPercent(depositPercent)) {
+    return { ok: false, message: DB_ERRORS.invalid_deposit ?? '' };
+  }
+
   const [company, supabase] = await Promise.all([
     getCurrentCompany(),
     createSupabaseServerClient(),
   ]);
   if (!company) return { ok: false, message: DB_ERRORS.company_missing ?? '' };
 
-  const { data: quote } = await supabase
-    .from('quotes')
-    .select('validity_days')
-    .eq('id', quoteId)
-    .maybeSingle();
-  if (!quote) return { ok: false, message: DB_ERRORS.quote_not_found ?? '' };
+  const [{ data: quote }, { data: summary }] = await Promise.all([
+    supabase.from('quotes').select('validity_days').eq('id', quoteId).maybeSingle(),
+    supabase.from('quote_summaries').select('total_ttc_cents').eq('id', quoteId).maybeSingle(),
+  ]);
+  if (!quote || !summary) return { ok: false, message: DB_ERRORS.quote_not_found ?? '' };
 
+  // Mention d'acompte (même calcul que la base, qui fait foi pour le montant à payer).
   const mentions = buildLegalMentions({
     companyName: company.name,
     siret: company.siret,
     vatMode: company.vatMode,
     validityDays: quote.validity_days,
+    deposit: {
+      percent: depositPercent,
+      amountLabel: formatCents(depositCents(summary.total_ttc_cents, depositPercent)),
+    },
   });
   const { token, hash } = createPublicToken();
 
@@ -73,6 +89,7 @@ export async function sendQuote({ quoteId, email }: SendQuoteInput): Promise<Sen
     p_token_hash: hash,
     p_recipient_email: recipient,
     p_mentions: mentions,
+    p_deposit_percent: depositPercent,
   });
   if (error) {
     console.error('[quotes] send_quote a échoué', { code: error.code, message: error.message });

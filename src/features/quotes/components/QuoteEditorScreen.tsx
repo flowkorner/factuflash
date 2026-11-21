@@ -295,6 +295,9 @@ export function QuoteEditorScreen({
         clientName={clientName || 'votre client'}
         totalLabel={isFranchise ? 'Total à payer' : 'Total TTC'}
         totalValue={formatCents(editor.totals.ttcCents)}
+        totalCents={editor.totals.ttcCents}
+        depositPercent={send.depositPercent}
+        onDepositChange={send.onDepositChange}
         email={send.email}
         emailError={send.emailError}
         error={send.error}

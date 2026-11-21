@@ -158,7 +158,11 @@ describe('QuoteEditorScreen', () => {
 
     await user.click(within(dialog).getByRole('button', { name: 'Envoyer' }));
 
-    expect(mockedSend).toHaveBeenCalledWith({ quoteId: 'q1', email: 'martin@example.fr' });
+    expect(mockedSend).toHaveBeenCalledWith({
+      quoteId: 'q1',
+      email: 'martin@example.fr',
+      depositPercent: 30,
+    });
     expect(replace).toHaveBeenCalledWith('/devis/q1?envoye=1');
     expect(push).not.toHaveBeenCalled();
   });

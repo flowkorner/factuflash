@@ -46,3 +46,36 @@ export function getEmailEnv(): EmailEnv {
     apiUrl: process.env.RESEND_API_URL || 'https://api.resend.com',
   };
 }
+
+export interface StripeEnv {
+  secretKey: string;
+  webhookSecret: string;
+}
+
+/**
+ * Clés Stripe côté serveur. Ticket 6 : MODE TEST uniquement — une clé live est refusée
+ * pour qu'aucun vrai paiement ne parte par erreur.
+ */
+export function getStripeEnv(): StripeEnv {
+  const secretKey = required('STRIPE_SECRET_KEY', process.env.STRIPE_SECRET_KEY);
+  if (!/^(sk|rk)_test_/.test(secretKey)) {
+    throw new Error('STRIPE_SECRET_KEY doit être une clé de TEST (sk_test_… ou rk_test_…).');
+  }
+  return {
+    secretKey,
+    webhookSecret: required('STRIPE_WEBHOOK_SECRET', process.env.STRIPE_WEBHOOK_SECRET),
+  };
+}
+
+/** Clé publiable Stripe (navigateur). Accès littéral pour que Next.js l'injecte. */
+export function getStripePublishableKey(): string {
+  return required(
+    'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY',
+    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+  );
+}
+
+/** Secret serveur exigé par la base pour enregistrer un paiement (empreinte dans private.app_secrets). */
+export function getPaymentsDbSecret(): string {
+  return required('PAYMENTS_DB_SECRET', process.env.PAYMENTS_DB_SECRET);
+}
