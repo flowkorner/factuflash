@@ -4,8 +4,9 @@ import { pdfResponse, pdfText } from './pdfFormat';
 // Le rendu PDF lui-même (@react-pdf, module ES uniquement) est vérifié en conditions réelles
 // en téléchargeant le PDF depuis l'application lancée.
 describe('PDF du devis', () => {
-  it('remplace les espaces fines (inconnues des polices PDF standard)', () => {
-    expect(pdfText('1 200,00 €')).toBe('1 200,00 €');
+  it('remplace les caractères inconnus des polices PDF standard', () => {
+    expect(pdfText('1\u202f200,00\u00a0€')).toBe('1 200,00 €');
+    expect(pdfText('\u2212 188,40 €')).toBe('- 188,40 €');
   });
 
   it('se télécharge sans cache ni indexation, avec un nom de fichier propre', () => {

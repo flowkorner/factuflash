@@ -13,6 +13,8 @@ const STATUS_COLORS: Record<QuoteStatus, { bg: string; fg: string }> = {
   accepted: { bg: colors.statusAcceptedBg, fg: colors.statusAcceptedFg },
   declined: { bg: colors.statusDeclinedBg, fg: colors.statusDeclinedFg },
   deposit_paid: { bg: colors.successBg, fg: colors.successFg },
+  invoiced: { bg: colors.statusInvoicedBg, fg: colors.statusInvoicedFg },
+  paid: { bg: colors.successBg, fg: colors.successFg },
 };
 
 interface QuoteCardProps {

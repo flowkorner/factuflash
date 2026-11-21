@@ -6,6 +6,8 @@ export const STATUS_LABELS: Record<QuoteStatus, string> = {
   accepted: 'Accepté',
   declined: 'Refusé',
   deposit_paid: 'Acompte payé',
+  invoiced: 'Facturé',
+  paid: 'Soldé',
 };
 
 const DATE_FORMAT = new Intl.DateTimeFormat('fr-FR', {

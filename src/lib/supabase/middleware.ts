@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getSupabaseEnv } from '@/lib/env';
 
-const PROTECTED_PREFIXES = ['/devis', '/entreprise'] as const;
+const PROTECTED_PREFIXES = ['/devis', '/entreprise', '/factures'] as const;
 const GUEST_ONLY_PREFIXES = ['/connexion'] as const;
 
 function matches(pathname: string, prefixes: readonly string[]): boolean {

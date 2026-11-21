@@ -14,6 +14,8 @@ import { formatDateTime } from '../document/documentView';
 import type { ArtisanQuoteDocument } from '../document/quoteDocuments';
 import { STATUS_LABELS } from '../domain/format';
 import { useSendQuote } from '../hooks/useSendQuote';
+import { InvoicesSection } from '@/features/invoices/components/InvoicesSection';
+import type { InvoiceSummary } from '@/features/invoices/domain/types';
 import { QuoteDocument } from './QuoteDocument';
 import { SendQuoteDialog } from './SendQuoteDialog';
 
@@ -22,9 +24,10 @@ export type SentNotice = 'sent' | 'email-failed' | null;
 interface QuoteSentScreenProps {
   document: ArtisanQuoteDocument;
   notice: SentNotice;
+  invoices: readonly InvoiceSummary[];
 }
 
-export function QuoteSentScreen({ document, notice }: QuoteSentScreenProps) {
+export function QuoteSentScreen({ document, notice, invoices }: QuoteSentScreenProps) {
   const { view } = document;
   const send = useSendQuote();
   const canResend = document.status === 'sent';
@@ -137,6 +140,16 @@ export function QuoteSentScreen({ document, notice }: QuoteSentScreenProps) {
             {document.sentAt === document.lastSentAt ? 'Envoyé' : 'Dernier envoi'} le{' '}
             {formatDateTime(document.lastSentAt)} à {document.sentToEmail}.
           </Typography>
+        ) : null}
+
+        {document.status !== 'sent' ? (
+          <InvoicesSection
+            quoteId={document.id}
+            invoices={invoices}
+            canCreateFinal={document.status === 'accepted' || document.status === 'deposit_paid'}
+            totalTtcCents={document.totalTtcCents}
+            clientEmail={document.sentToEmail ?? document.clientEmail}
+          />
         ) : null}
 
         <QuoteDocument view={view} />

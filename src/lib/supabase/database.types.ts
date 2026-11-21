@@ -3,7 +3,10 @@
  * Peut être régénéré : `npx supabase gen types typescript --project-id <ref>`.
  */
 export type VatModeDb = 'subject' | 'franchise';
-export type QuoteStatusDb = 'draft' | 'sent' | 'accepted' | 'declined' | 'deposit_paid';
+export type QuoteStatusDb =
+  'draft' | 'sent' | 'accepted' | 'declined' | 'deposit_paid' | 'invoiced' | 'paid';
+export type InvoiceKindDb = 'deposit' | 'final';
+export type PaymentMethodDb = 'card_online' | 'transfer' | 'cheque' | 'cash' | 'card';
 export type UnitDb = 'u' | 'h' | 'jour' | 'm' | 'm2' | 'm3' | 'kg' | 'forfait' | 'lot';
 export type SourceDb = 'manual' | 'ai';
 export type VatRateBpDb = 0 | 550 | 1000 | 2000;
@@ -119,6 +122,33 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      invoices: {
+        Row: {
+          id: string;
+          user_id: string;
+          quote_id: string;
+          kind: InvoiceKindDb;
+          number: string;
+          issue_date: string;
+          due_date: string;
+          service_date: string;
+          total_ht_cents: number;
+          total_vat_cents: number;
+          total_ttc_cents: number;
+          amount_due_cents: number;
+          snapshot: Json;
+          public_token_hash: string | null;
+          sent_to_email: string | null;
+          sent_at: string | null;
+          last_sent_at: string | null;
+          paid_on: string | null;
+          payment_method: PaymentMethodDb | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       quote_payments: {
         Row: {
           id: string;
@@ -217,8 +247,39 @@ export interface Database {
           p_payment_intent_id: string | null;
           p_amount_cents: number;
           p_currency: string;
+          p_invoice_token_hash: string;
         };
-        Returns: string;
+        Returns: Json;
+      };
+      record_invoice_email_sent: {
+        Args: { p_secret: string; p_invoice_id: string };
+        Returns: undefined;
+      };
+      create_final_invoice: {
+        Args: {
+          p_quote_id: string;
+          p_service_date: string;
+          p_due_days: number;
+          p_token_hash: string;
+          p_email: string;
+        };
+        Returns: Json;
+      };
+      send_invoice: {
+        Args: { p_invoice_id: string; p_token_hash: string; p_email: string };
+        Returns: Json;
+      };
+      mark_invoice_sent: {
+        Args: { p_invoice_id: string };
+        Returns: undefined;
+      };
+      mark_final_invoice_paid: {
+        Args: { p_invoice_id: string; p_paid_on: string; p_method: string };
+        Returns: undefined;
+      };
+      get_public_invoice: {
+        Args: { p_token: string };
+        Returns: Json;
       };
       get_public_quote: {
         Args: { p_token: string };

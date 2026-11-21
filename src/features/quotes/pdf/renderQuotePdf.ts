@@ -6,7 +6,7 @@ import type { QuoteDocumentView } from '../document/documentView';
 import { QuotePdf } from './QuotePdf';
 
 /** Télécharge le logo (2 s max). Le PDF n'accepte que PNG et JPEG : un logo WebP est ignoré. */
-async function fetchLogo(
+export async function fetchLogo(
   url: string | null,
 ): Promise<{ data: Buffer; format: 'png' | 'jpg' } | null> {
   if (!url) return null;

@@ -9,6 +9,11 @@ import { QuoteSentScreen } from './QuoteSentScreen';
 const replace = jest.fn();
 jest.mock('next/navigation', () => ({ useRouter: () => ({ replace, refresh: jest.fn() }) }));
 jest.mock('../actions/sendQuote', () => ({ sendQuote: jest.fn() }));
+jest.mock('@/features/invoices/actions/invoiceActions', () => ({
+  createFinalInvoice: jest.fn(),
+  sendInvoice: jest.fn(),
+  markInvoicePaid: jest.fn(),
+}));
 
 function doc(overrides: Partial<ArtisanQuoteDocument> = {}): ArtisanQuoteDocument {
   return {
@@ -19,6 +24,7 @@ function doc(overrides: Partial<ArtisanQuoteDocument> = {}): ArtisanQuoteDocumen
     lastSentAt: '2026-11-20T10:00:00Z',
     sentToEmail: 'martin@example.fr',
     clientEmail: 'martin@example.fr',
+    totalTtcCents: 62800,
     view: sampleView(),
     ...overrides,
   };
@@ -28,7 +34,7 @@ describe('QuoteSentScreen', () => {
   it('montre un devis envoyé, non modifiable, avec PDF et renvoi', async () => {
     jest.mocked(sendQuote).mockResolvedValue({ ok: true, sentTo: 'martin@example.fr' });
     const user = userEvent.setup();
-    renderWithTheme(<QuoteSentScreen document={doc()} notice="sent" />);
+    renderWithTheme(<QuoteSentScreen document={doc()} notice="sent" invoices={[]} />);
 
     expect(screen.getByText('Envoyé · non modifiable')).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('Devis envoyé à martin@example.fr');
@@ -57,11 +63,18 @@ describe('QuoteSentScreen', () => {
           }),
         })}
         notice={null}
+        invoices={[]}
       />,
     );
 
     expect(screen.getByText('Accepté par le client')).toBeInTheDocument();
     expect(screen.getByText('Jean Martin, le 21 novembre 2026 à 14:32.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Renvoyer l’email' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Créer la facture de solde' })).toBeInTheDocument();
+  });
+
+  it('ne propose pas de facture tant que le devis n’est pas accepté', () => {
+    renderWithTheme(<QuoteSentScreen document={doc()} notice={null} invoices={[]} />);
+    expect(screen.queryByRole('heading', { name: 'Factures' })).not.toBeInTheDocument();
   });
 });

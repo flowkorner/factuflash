@@ -12,7 +12,8 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 ## Organisation
 
 - `src/app/` : routes uniquement (metadata + rendu d'un écran). `/connexion`, `/devis`, `/devis/nouveau`, `/devis/[id]` (+ `/pdf`), `/entreprise`,
-  et la page publique client `/d/[token]` (+ `/pdf`), sans compte.
+  et la page publique client `/d/[token]` (+ `/pdf`), sans compte. Factures : `/factures/[id]/pdf` (artisan),
+  `/f/[token]` (+ `/pdf`) pour le client.
 - `src/features/<domaine>/` : `components/`, `hooks/` (logique), `services/` (appels externes), `utils/`.
 - `src/components/` : composants partagés (`MobileScreen`, `BrandLogo`).
 - `src/theme/` : `tokens.ts` (couleurs de la maquette) + `theme.ts` (MUI). Pas de couleur en dur ailleurs.
@@ -27,6 +28,7 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 - `src/features/quotes/document/` : snapshot figé → modèle d'affichage partagé par la page web et le PDF (`pdf/`).
 - `src/features/payments/` : acompte Stripe (session, Payment Element, webhook). `src/lib/stripe/server.ts` : client Stripe.
 - `src/app/api/stripe/webhook/route.ts` : webhook Stripe (hors middleware).
+- `src/features/invoices/` : factures (contenu figé, mentions légales, PDF, emails, section « Factures » du devis).
 
 ## Conventions
 
@@ -47,7 +49,8 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
   Rien pour `anon`, sauf `get_public_quote`, `accept_public_quote`, `prepare_deposit_checkout` (jeton secret exigé)
   et `record_deposit_payment` (secret serveur exigé, empreinte dans `private.app_secrets`).
 - Statuts des devis : `draft` → `sent` (fonction `send_quote`) → `accepted` (fonction `accept_public_quote`, par le client)
-  → `deposit_paid` (fonction `record_deposit_payment`, par le webhook Stripe uniquement).
+  → `deposit_paid` (fonction `record_deposit_payment`, par le webhook Stripe uniquement)
+  → `invoiced` (« Facturé », `create_final_invoice`) → `paid` (« Soldé », `mark_final_invoice_paid`).
   Droits par colonne sur `quotes` : l'artisan ne peut écrire ni statut, ni snapshot, ni jeton, ni acceptation.
 - Lien client : jeton de 256 bits, seule son empreinte SHA-256 est en base. Un renvoi crée un nouveau lien (l'ancien meurt).
 - Fichiers : bucket `logos`, un dossier par utilisateur (`<user_id>/…`), écriture réservée à son propriétaire.
@@ -65,6 +68,17 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 
 - Variables serveur (jamais `NEXT_PUBLIC_`) : `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_TEST_RECIPIENT` (mode test :
   tout part vers cette adresse). Texte saisi toujours échappé dans le HTML.
+
+## Factures
+
+- Numéro `F-AAAA-NNN` par artisan et par an, tiré d'un compteur dans la MÊME transaction que la création : continu,
+  sans trou, jamais réattribué. Aucune suppression possible (trigger `private.protect_invoice` + FK `on delete restrict`).
+- Facture inaltérable une fois émise : seuls l'envoi (lien, email) et le paiement du solde peuvent être renseignés.
+  Correction = avoir (à venir), jamais une modification.
+- Facture d'acompte : créée par `record_deposit_payment` avec le paiement (TVA au prorata des taux du devis), acquittée.
+  Facture de solde : toutes les lignes, acomptes déjà facturés déduits, échéance 0 à 60 jours.
+- Mentions légales régénérées depuis le contenu figé (`buildInvoiceMentions`, versionnées) : échéance, pénalités,
+  indemnité de 40 €, pas d'escompte, mention TVA selon le régime, date d'exécution.
 
 ## Paiements (Stripe)
 
@@ -93,3 +107,4 @@ Maquette de référence : canvas « FactuFlash — Écrans artisan » (390×844)
 - Ticket 5 : envoi au client par email, page publique `/d/[token]`, acceptation (nom + case « bon pour accord »),
   devis figé à l'envoi (`snapshot`), PDF artisan et client.
 - Ticket 6 : acompte payé en ligne par le client (Stripe, mode test), badge « Acompte payé » et montant reçu.
+- Ticket 7 : factures d'acompte (automatiques) et de solde, PDF, email, lien public, statuts « Facturé » / « Soldé ».

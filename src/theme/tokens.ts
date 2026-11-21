@@ -21,6 +21,8 @@ export const colors = {
   statusDeclinedBg: '#FEE2E2',
   statusDeclinedFg: '#991B1B',
   dashedBorder: '#93C5FD',
+  statusInvoicedBg: '#E0E7FF',
+  statusInvoicedFg: '#3730A3',
   successBg: '#DCFCE7',
   successFg: '#14532D',
   acceptBorder: '#BFDBFE',

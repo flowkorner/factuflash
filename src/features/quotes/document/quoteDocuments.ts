@@ -33,6 +33,7 @@ export interface ArtisanQuoteDocument {
   lastSentAt: string | null;
   sentToEmail: string | null;
   clientEmail: string | null;
+  totalTtcCents: number;
   view: QuoteDocumentView;
 }
 
@@ -76,6 +77,7 @@ export async function getArtisanQuoteDocument(id: string): Promise<ArtisanQuoteD
     lastSentAt: quote.last_sent_at,
     sentToEmail: quote.sent_to_email,
     clientEmail: snapshot.client.email,
+    totalTtcCents: snapshot.totals.ttcCents,
     view: buildDocumentView(snapshot, {
       status: quote.status,
       issueDate,
